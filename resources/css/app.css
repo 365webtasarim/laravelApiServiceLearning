@@ -1,0 +1,15 @@
+@import "fontawesome-free/css/all.css";
+@import "bootstrap/dist/css/bootstrap.min.css";
+
+@import "toastr";
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+#makaleler_length  select{
+    content:"";
+    background-image:none;
+    appearance:menulist-button;
+}
+
+
