@@ -53,7 +53,7 @@
 
 
             <ul class="home-sohbet" >
-                @foreach($makale as $key=>$item)
+                @foreach($makale as $key => $item)
                     @if($key<3)
                         <li>
                                 <div class="item">
@@ -61,6 +61,8 @@
 
                                     <div class="post-thumbnail">
                                         <img src="{{asset($item->cover)}}" alt="" >
+                                        <br>
+                                        <span></span>
                                     </div>
                                        <span class="date">
                                            <i class="far fa-calendar-alt"></i> {{$item->updated_at->format('d/m/Y')}}

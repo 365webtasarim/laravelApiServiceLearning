@@ -15,10 +15,11 @@ class HomeController extends Controller
      */
     public function index()
     {
-      $makale=Post::take(6)->where('status',1)->where('post_type','sohbet')->where('type','post')->Orderby('created_at','desc')->get();
-      $video=Post::take(6)->where('status',1)->where('type','video')->Orderby('created_at','desc')->get();
+        $makale = Post::homePosts(limit: 6,type: 'post', post_type: 'sohbet')->get();
 
-      return view('welcome',compact('makale','video'));
+        $video = Post::homePosts(limit: 6,type: 'video')->get();
+
+        return view('welcome', compact('makale', 'video'));
     }
 
 
