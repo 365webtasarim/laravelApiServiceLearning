@@ -23,9 +23,11 @@ $('#nestable').nestable({
     maxDepth: 2
 });
 
+
 import Alpine from 'alpinejs';
 
 window.Alpine = Alpine;
 
 Alpine.start();
+
 

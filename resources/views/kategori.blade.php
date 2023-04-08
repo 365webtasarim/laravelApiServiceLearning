@@ -36,7 +36,9 @@
                 @foreach($catData->post as $item)
                     <div class="col-sm-12 col-md-6 col-lg-4 d-flex align-self-stretch my-3">
                         <div class="card shadow-sm">
-                            <img src="{{asset($item->cover)}}" width="100%" height="225" class="card-img-top" alt="">
+                            <a href="/makale/{{$item->slug}}">
+                                <img src="{{asset($item->cover)}}" width="100%" height="225" class="card-img-top" alt="">
+                            </a>
                             <div class="card-body d-flex flex-column">
                                 <a href="/makale/{{$item->slug}}">
                                     <p class="fs-3 fw-bold lh-1">{{$item->title}}</p>
@@ -51,8 +53,6 @@
             @endif
         </div>
     </div>
-
-
 </div>
     <footer class="container-fluid bg-top-2">
         <div class="container py-5">

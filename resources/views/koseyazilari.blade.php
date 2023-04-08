@@ -17,7 +17,7 @@
 {{--Slider--}}
 <div id="sync1" class="owl-carousel owl-theme">
     <div class="item">
- 
+
         <img src="{{asset('image/slider1.jpg')}}" alt="">
     </div>
     <div class="item">
@@ -98,6 +98,7 @@
                 </div>
             </div>
 
+            {{ $makale->links('pagination::bootstrap-5') }}
 {{--            @foreach($makale as $item)--}}
 {{--                <div class="col-sm-12 col-md-6 col-lg-4 d-flex align-self-stretch my-3">--}}
 

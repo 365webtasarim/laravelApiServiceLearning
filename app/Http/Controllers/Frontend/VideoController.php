@@ -16,7 +16,7 @@ class VideoController extends Controller
      */
     public function index()
     {
-        $videos=Post::with('catagory')->where('type','video')->Orderby('created_at','desc')->get();
+        $videos=Post::with('catagory')->where('type','video')->Orderby('created_at','desc')->paginate(12);
         return view('videos',compact('videos'));
     }
     public function izle($slug)

@@ -110,7 +110,7 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony export */   "isStaticProperty": () => (/* binding */ isStaticProperty),
 /* harmony export */   "isStaticPropertyKey": () => (/* binding */ isStaticPropertyKey),
 /* harmony export */   "isTemplateNode": () => (/* binding */ isTemplateNode),
-/* harmony export */   "isText": () => (/* binding */ isText),
+/* harmony export */   "isText": () => (/* binding */ isText$1),
 /* harmony export */   "isVSlot": () => (/* binding */ isVSlot),
 /* harmony export */   "locStub": () => (/* binding */ locStub),
 /* harmony export */   "makeBlock": () => (/* binding */ makeBlock),
@@ -121,6 +121,7 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony export */   "processSlotOutlet": () => (/* binding */ processSlotOutlet),
 /* harmony export */   "registerRuntimeHelpers": () => (/* binding */ registerRuntimeHelpers),
 /* harmony export */   "resolveComponentType": () => (/* binding */ resolveComponentType),
+/* harmony export */   "stringifyExpression": () => (/* binding */ stringifyExpression),
 /* harmony export */   "toValidAssetId": () => (/* binding */ toValidAssetId),
 /* harmony export */   "trackSlotScopes": () => (/* binding */ trackSlotScopes),
 /* harmony export */   "trackVForSlotScopes": () => (/* binding */ trackVForSlotScopes),
@@ -136,7 +137,7 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony export */   "walkIdentifiers": () => (/* binding */ walkIdentifiers),
 /* harmony export */   "warnDeprecation": () => (/* binding */ warnDeprecation)
 /* harmony export */ });
-/* harmony import */ var _vue_shared__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! @vue/shared */ "./node_modules/@vue/compiler-core/node_modules/@vue/shared/dist/shared.esm-bundler.js");
+/* harmony import */ var _vue_shared__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! @vue/shared */ "./node_modules/@vue/shared/dist/shared.esm-bundler.js");
 
 
 
@@ -197,7 +198,7 @@ const errorMessages = {
     [34 /* ErrorCodes.X_V_BIND_NO_EXPRESSION */]: `v-bind is missing expression.`,
     [35 /* ErrorCodes.X_V_ON_NO_EXPRESSION */]: `v-on is missing expression.`,
     [36 /* ErrorCodes.X_V_SLOT_UNEXPECTED_DIRECTIVE_ON_SLOT_OUTLET */]: `Unexpected custom directive on <slot> outlet.`,
-    [37 /* ErrorCodes.X_V_SLOT_MIXED_SLOT_USAGE */]: `Mixed v-slot usage on both the component and nested <template>.` +
+    [37 /* ErrorCodes.X_V_SLOT_MIXED_SLOT_USAGE */]: `Mixed v-slot usage on both the component and nested <template>. ` +
         `When there are multiple named slots, all slots should use <template> ` +
         `syntax to avoid scope ambiguity.`,
     [38 /* ErrorCodes.X_V_SLOT_DUPLICATE_SLOT_NAMES */]: `Duplicate slot names found. `,
@@ -207,15 +208,16 @@ const errorMessages = {
     [41 /* ErrorCodes.X_V_MODEL_NO_EXPRESSION */]: `v-model is missing expression.`,
     [42 /* ErrorCodes.X_V_MODEL_MALFORMED_EXPRESSION */]: `v-model value must be a valid JavaScript member expression.`,
     [43 /* ErrorCodes.X_V_MODEL_ON_SCOPE_VARIABLE */]: `v-model cannot be used on v-for or v-slot scope variables because they are not writable.`,
-    [44 /* ErrorCodes.X_INVALID_EXPRESSION */]: `Error parsing JavaScript expression: `,
-    [45 /* ErrorCodes.X_KEEP_ALIVE_INVALID_CHILDREN */]: `<KeepAlive> expects exactly one child component.`,
+    [44 /* ErrorCodes.X_V_MODEL_ON_PROPS */]: `v-model cannot be used on a prop, because local prop bindings are not writable.\nUse a v-bind binding combined with a v-on listener that emits update:x event instead.`,
+    [45 /* ErrorCodes.X_INVALID_EXPRESSION */]: `Error parsing JavaScript expression: `,
+    [46 /* ErrorCodes.X_KEEP_ALIVE_INVALID_CHILDREN */]: `<KeepAlive> expects exactly one child component.`,
     // generic errors
-    [46 /* ErrorCodes.X_PREFIX_ID_NOT_SUPPORTED */]: `"prefixIdentifiers" option is not supported in this build of compiler.`,
-    [47 /* ErrorCodes.X_MODULE_MODE_NOT_SUPPORTED */]: `ES module mode is not supported in this build of compiler.`,
-    [48 /* ErrorCodes.X_CACHE_HANDLER_NOT_SUPPORTED */]: `"cacheHandlers" option is only supported when the "prefixIdentifiers" option is enabled.`,
-    [49 /* ErrorCodes.X_SCOPE_ID_NOT_SUPPORTED */]: `"scopeId" option is only supported in module mode.`,
+    [47 /* ErrorCodes.X_PREFIX_ID_NOT_SUPPORTED */]: `"prefixIdentifiers" option is not supported in this build of compiler.`,
+    [48 /* ErrorCodes.X_MODULE_MODE_NOT_SUPPORTED */]: `ES module mode is not supported in this build of compiler.`,
+    [49 /* ErrorCodes.X_CACHE_HANDLER_NOT_SUPPORTED */]: `"cacheHandlers" option is only supported when the "prefixIdentifiers" option is enabled.`,
+    [50 /* ErrorCodes.X_SCOPE_ID_NOT_SUPPORTED */]: `"scopeId" option is only supported in module mode.`,
     // just to fulfill types
-    [50 /* ErrorCodes.__EXTEND_POINT__ */]: ``
+    [51 /* ErrorCodes.__EXTEND_POINT__ */]: ``
 };
 
 const FRAGMENT = Symbol(( true) ? `Fragment` : 0);
@@ -319,7 +321,7 @@ function createRoot(children, loc = locStub) {
     return {
         type: 0 /* NodeTypes.ROOT */,
         children,
-        helpers: [],
+        helpers: new Set(),
         components: [],
         directives: [],
         hoists: [],
@@ -666,7 +668,7 @@ function hasDynamicKeyVBind(node) {
             !p.arg.isStatic) // v-bind:[foo]
     );
 }
-function isText(node) {
+function isText$1(node) {
     return node.type === 5 /* NodeTypes.INTERPOLATION */ || node.type === 2 /* NodeTypes.TEXT */;
 }
 function isVSlot(p) {
@@ -726,7 +728,10 @@ function injectProp(node, prop, context) {
         // if doesn't override user provided keys
         const first = props.arguments[0];
         if (!(0,_vue_shared__WEBPACK_IMPORTED_MODULE_0__.isString)(first) && first.type === 15 /* NodeTypes.JS_OBJECT_EXPRESSION */) {
-            first.properties.unshift(prop);
+            // #6631
+            if (!hasProp(prop, first)) {
+                first.properties.unshift(prop);
+            }
         }
         else {
             if (props.callee === TO_HANDLERS) {
@@ -743,14 +748,7 @@ function injectProp(node, prop, context) {
         !propsWithInjection && (propsWithInjection = props);
     }
     else if (props.type === 15 /* NodeTypes.JS_OBJECT_EXPRESSION */) {
-        let alreadyExists = false;
-        // check existing key to avoid overriding user provided keys
-        if (prop.key.type === 4 /* NodeTypes.SIMPLE_EXPRESSION */) {
-            const propKeyName = prop.key.content;
-            alreadyExists = props.properties.some(p => p.key.type === 4 /* NodeTypes.SIMPLE_EXPRESSION */ &&
-                p.key.content === propKeyName);
-        }
-        if (!alreadyExists) {
+        if (!hasProp(prop, props)) {
             props.properties.unshift(prop);
         }
         propsWithInjection = props;
@@ -784,6 +782,16 @@ function injectProp(node, prop, context) {
             node.arguments[2] = propsWithInjection;
         }
     }
+}
+// check existing key to avoid overriding user provided keys
+function hasProp(prop, props) {
+    let result = false;
+    if (prop.key.type === 4 /* NodeTypes.SIMPLE_EXPRESSION */) {
+        const propKeyName = prop.key.content;
+        result = props.properties.some(p => p.key.type === 4 /* NodeTypes.SIMPLE_EXPRESSION */ &&
+            p.key.content === propKeyName);
+    }
+    return result;
 }
 function toValidAssetId(name, type) {
     // see issue#4422, we need adding identifier on validAssetId if variable `name` has specific character
@@ -1101,13 +1109,18 @@ function parseChildren(context, mode, ancestors) {
                         const next = nodes[i + 1];
                         // Remove if:
                         // - the whitespace is the first or last node, or:
-                        // - (condense mode) the whitespace is adjacent to a comment, or:
+                        // - (condense mode) the whitespace is between twos comments, or:
+                        // - (condense mode) the whitespace is between comment and element, or:
                         // - (condense mode) the whitespace is between two elements AND contains newline
                         if (!prev ||
                             !next ||
                             (shouldCondense &&
-                                (prev.type === 3 /* NodeTypes.COMMENT */ ||
-                                    next.type === 3 /* NodeTypes.COMMENT */ ||
+                                ((prev.type === 3 /* NodeTypes.COMMENT */ &&
+                                    next.type === 3 /* NodeTypes.COMMENT */) ||
+                                    (prev.type === 3 /* NodeTypes.COMMENT */ &&
+                                        next.type === 1 /* NodeTypes.ELEMENT */) ||
+                                    (prev.type === 1 /* NodeTypes.ELEMENT */ &&
+                                        next.type === 3 /* NodeTypes.COMMENT */) ||
                                     (prev.type === 1 /* NodeTypes.ELEMENT */ &&
                                         next.type === 1 /* NodeTypes.ELEMENT */ &&
                                         /[\r\n]/.test(node.content))))) {
@@ -2185,7 +2198,7 @@ function transform(root, options) {
         createRootCodegen(root, context);
     }
     // finalize meta information
-    root.helpers = [...context.helpers.keys()];
+    root.helpers = new Set([...context.helpers.keys()]);
     root.components = [...context.components];
     root.directives = [...context.directives];
     root.imports = context.imports;
@@ -2392,12 +2405,16 @@ function generate(ast, options = {}) {
     if (options.onContextCreated)
         options.onContextCreated(context);
     const { mode, push, prefixIdentifiers, indent, deindent, newline, scopeId, ssr } = context;
-    const hasHelpers = ast.helpers.length > 0;
+    const helpers = Array.from(ast.helpers);
+    const hasHelpers = helpers.length > 0;
     const useWithBlock = !prefixIdentifiers && mode !== 'module';
+    const isSetupInlined = !true ;
     // preambles
     // in setup() inline mode, the preamble is generated in a sub context
     // and returned separately.
-    const preambleContext = context;
+    const preambleContext = isSetupInlined
+        ? createCodegenContext(ast, options)
+        : context;
     {
         genFunctionPreamble(ast, preambleContext);
     }
@@ -2415,7 +2432,7 @@ function generate(ast, options = {}) {
         // function mode const declarations should be inside with block
         // also they should be renamed to avoid collision with user properties
         if (hasHelpers) {
-            push(`const { ${ast.helpers.map(aliasHelper).join(', ')} } = _Vue`);
+            push(`const { ${helpers.map(aliasHelper).join(', ')} } = _Vue`);
             push(`\n`);
             newline();
         }
@@ -2467,7 +2484,7 @@ function generate(ast, options = {}) {
     return {
         ast,
         code: context.code,
-        preamble: ``,
+        preamble: isSetupInlined ? preambleContext.code : ``,
         // SourceMapGenerator does have toJSON() method but it's not in the types
         map: context.map ? context.map.toJSON() : undefined
     };
@@ -2479,7 +2496,8 @@ function genFunctionPreamble(ast, context) {
     // In prefix mode, we place the const declaration at top so it's done
     // only once; But if we not prefixing, we place the declaration inside the
     // with block so it doesn't incur the `in` check cost for every helper access.
-    if (ast.helpers.length > 0) {
+    const helpers = Array.from(ast.helpers);
+    if (helpers.length > 0) {
         {
             // "with" mode.
             // save Vue in a separate variable to avoid collision
@@ -2495,7 +2513,7 @@ function genFunctionPreamble(ast, context) {
                     CREATE_TEXT,
                     CREATE_STATIC
                 ]
-                    .filter(helper => ast.helpers.includes(helper))
+                    .filter(helper => helpers.includes(helper))
                     .map(aliasHelper)
                     .join(', ');
                 push(`const { ${staticHelpers} } = _Vue\n`);
@@ -2542,7 +2560,7 @@ function genHoists(hoists, context) {
     }
     context.pure = false;
 }
-function isText$1(n) {
+function isText(n) {
     return ((0,_vue_shared__WEBPACK_IMPORTED_MODULE_0__.isString)(n) ||
         n.type === 4 /* NodeTypes.SIMPLE_EXPRESSION */ ||
         n.type === 2 /* NodeTypes.TEXT */ ||
@@ -2551,7 +2569,7 @@ function isText$1(n) {
 }
 function genNodeListAsArray(nodes, context) {
     const multilines = nodes.length > 3 ||
-        ((( true)) && nodes.some(n => (0,_vue_shared__WEBPACK_IMPORTED_MODULE_0__.isArray)(n) || !isText$1(n)));
+        ((( true)) && nodes.some(n => (0,_vue_shared__WEBPACK_IMPORTED_MODULE_0__.isArray)(n) || !isText(n)));
     context.push(`[`);
     multilines && context.indent();
     genNodeList(nodes, context, multilines);
@@ -2990,11 +3008,11 @@ const isStaticProperty = (node) => node &&
 const isStaticPropertyKey = (node, parent) => isStaticProperty(parent) && parent.key === node;
 
 // these keywords should not appear inside expressions, but operators like
-// typeof, instanceof and in are allowed
+// 'typeof', 'instanceof', and 'in' are allowed
 const prohibitedKeywordRE = new RegExp('\\b' +
-    ('do,if,for,let,new,try,var,case,else,with,await,break,catch,class,const,' +
-        'super,throw,while,yield,delete,export,import,return,switch,default,' +
-        'extends,finally,continue,debugger,function,arguments,typeof,void')
+    ('arguments,await,break,case,catch,class,const,continue,debugger,default,' +
+        'delete,do,else,export,extends,finally,for,function,if,import,let,new,' +
+        'return,super,switch,throw,try,var,void,while,with,yield')
         .split(',')
         .join('\\b|\\b') +
     '\\b');
@@ -3025,7 +3043,7 @@ function validateBrowserExpression(node, context, asParams = false, asRawStateme
         if (keywordMatch) {
             message = `avoid using JavaScript keyword as property name: "${keywordMatch[0]}"`;
         }
-        context.onError(createCompilerError(44 /* ErrorCodes.X_INVALID_EXPRESSION */, node.loc, undefined, message));
+        context.onError(createCompilerError(45 /* ErrorCodes.X_INVALID_EXPRESSION */, node.loc, undefined, message));
     }
 }
 
@@ -3072,6 +3090,19 @@ asRawStatements = false, localVars = Object.create(context.identifiers)) {
             validateBrowserExpression(node, context, asParams, asRawStatements);
         }
         return node;
+    }
+}
+function stringifyExpression(exp) {
+    if ((0,_vue_shared__WEBPACK_IMPORTED_MODULE_0__.isString)(exp)) {
+        return exp;
+    }
+    else if (exp.type === 4 /* NodeTypes.SIMPLE_EXPRESSION */) {
+        return exp.content;
+    }
+    else {
+        return exp.children
+            .map(stringifyExpression)
+            .join('');
     }
 }
 
@@ -3133,9 +3164,9 @@ function processIf(node, dir, context, processCodegen) {
         let i = siblings.indexOf(node);
         while (i-- >= -1) {
             const sibling = siblings[i];
-            if (( true) && sibling && sibling.type === 3 /* NodeTypes.COMMENT */) {
+            if (sibling && sibling.type === 3 /* NodeTypes.COMMENT */) {
                 context.removeNode(sibling);
-                comments.unshift(sibling);
+                ( true) && comments.unshift(sibling);
                 continue;
             }
             if (sibling &&
@@ -3844,7 +3875,7 @@ const transformElement = (node, context) => {
                 // 2. Force keep-alive to always be updated, since it uses raw children.
                 patchFlag |= 1024 /* PatchFlags.DYNAMIC_SLOTS */;
                 if (( true) && node.children.length > 1) {
-                    context.onError(createCompilerError(45 /* ErrorCodes.X_KEEP_ALIVE_INVALID_CHILDREN */, {
+                    context.onError(createCompilerError(46 /* ErrorCodes.X_KEEP_ALIVE_INVALID_CHILDREN */, {
                         start: node.children[0].loc.start,
                         end: node.children[node.children.length - 1].loc.end,
                         source: ''
@@ -4458,7 +4489,7 @@ function processSlotOutlet(node, context) {
     };
 }
 
-const fnExpRE = /^\s*([\w$_]+|(async\s*)?\([^)]*?\))\s*=>|^\s*(async\s+)?function(?:\s+[\w$]+)?\s*\(/;
+const fnExpRE = /^\s*([\w$_]+|(async\s*)?\([^)]*?\))\s*(:[^=]+)?=>|^\s*(async\s+)?function(?:\s+[\w$]+)?\s*\(/;
 const transformOn = (dir, node, context, augmentor) => {
     const { loc, modifiers, arg } = dir;
     if (!dir.exp && !modifiers.length) {
@@ -4472,10 +4503,10 @@ const transformOn = (dir, node, context, augmentor) => {
             if (rawName.startsWith('vue:')) {
                 rawName = `vnode-${rawName.slice(4)}`;
             }
-            const eventString = node.tagType === 1 /* ElementTypes.COMPONENT */ ||
+            const eventString = node.tagType !== 0 /* ElementTypes.ELEMENT */ ||
                 rawName.startsWith('vnode') ||
                 !/[A-Z]/.test(rawName)
-                ? // for component and vnode lifecycle event listeners, auto convert
+                ? // for non-element and vnode lifecycle event listeners, auto convert
                     // it to camelCase. See issue #2249
                     (0,_vue_shared__WEBPACK_IMPORTED_MODULE_0__.toHandlerKey)((0,_vue_shared__WEBPACK_IMPORTED_MODULE_0__.camelize)(rawName))
                 : // preserve case for plain element listeners that have uppercase
@@ -4619,11 +4650,11 @@ const transformText = (node, context) => {
             let hasText = false;
             for (let i = 0; i < children.length; i++) {
                 const child = children[i];
-                if (isText(child)) {
+                if (isText$1(child)) {
                     hasText = true;
                     for (let j = i + 1; j < children.length; j++) {
                         const next = children[j];
-                        if (isText(next)) {
+                        if (isText$1(next)) {
                             if (!currentContainer) {
                                 currentContainer = children[i] = createCompoundExpression([child], child.loc);
                             }
@@ -4665,7 +4696,7 @@ const transformText = (node, context) => {
             // runtime normalization.
             for (let i = 0; i < children.length; i++) {
                 const child = children[i];
-                if (isText(child) || child.type === 8 /* NodeTypes.COMPOUND_EXPRESSION */) {
+                if (isText$1(child) || child.type === 8 /* NodeTypes.COMPOUND_EXPRESSION */) {
                     const callArgs = [];
                     // createTextVNode defaults to single whitespace, so if it is a
                     // single space the code could be an empty call to save bytes.
@@ -4690,13 +4721,13 @@ const transformText = (node, context) => {
     }
 };
 
-const seen = new WeakSet();
+const seen$1 = new WeakSet();
 const transformOnce = (node, context) => {
     if (node.type === 1 /* NodeTypes.ELEMENT */ && findDir(node, 'once', true)) {
-        if (seen.has(node) || context.inVOnce) {
+        if (seen$1.has(node) || context.inVOnce) {
             return;
         }
-        seen.add(node);
+        seen$1.add(node);
         context.inVOnce = true;
         context.helper(SET_BLOCK_TRACKING);
         return () => {
@@ -4719,8 +4750,14 @@ const transformModel = (dir, node, context) => {
     const expString = exp.type === 4 /* NodeTypes.SIMPLE_EXPRESSION */ ? exp.content : rawExp;
     // im SFC <script setup> inline mode, the exp may have been transformed into
     // _unref(exp)
-    context.bindingMetadata[rawExp];
-    const maybeRef = !true    /* BindingTypes.SETUP_CONST */;
+    const bindingType = context.bindingMetadata[rawExp];
+    // check props
+    if (bindingType === "props" /* BindingTypes.PROPS */ ||
+        bindingType === "props-aliased" /* BindingTypes.PROPS_ALIASED */) {
+        context.onError(createCompilerError(44 /* ErrorCodes.X_V_MODEL_ON_PROPS */, exp.loc));
+        return createTransformProps();
+    }
+    const maybeRef = !true  ;
     if (!expString.trim() ||
         (!isMemberExpression(expString) && !maybeRef)) {
         context.onError(createCompilerError(42 /* ErrorCodes.X_V_MODEL_MALFORMED_EXPRESSION */, exp.loc));
@@ -4729,7 +4766,7 @@ const transformModel = (dir, node, context) => {
     const propName = arg ? arg : createSimpleExpression('modelValue', true);
     const eventName = arg
         ? isStaticExp(arg)
-            ? `onUpdate:${arg.content}`
+            ? `onUpdate:${(0,_vue_shared__WEBPACK_IMPORTED_MODULE_0__.camelize)(arg.content)}`
             : createCompoundExpression(['"onUpdate:" + ', arg])
         : `onUpdate:modelValue`;
     let assignmentExp;
@@ -4931,14 +4968,14 @@ function wrapFilter(exp, filter, context) {
     }
 }
 
-const seen$1 = new WeakSet();
+const seen = new WeakSet();
 const transformMemo = (node, context) => {
     if (node.type === 1 /* NodeTypes.ELEMENT */) {
         const dir = findDir(node, 'memo');
-        if (!dir || seen$1.has(node)) {
+        if (!dir || seen.has(node)) {
             return;
         }
-        seen$1.add(node);
+        seen.add(node);
         return () => {
             const codegenNode = node.codegenNode ||
                 context.currentNode.codegenNode;
@@ -4989,18 +5026,18 @@ function baseCompile(template, options = {}) {
     /* istanbul ignore if */
     {
         if (options.prefixIdentifiers === true) {
-            onError(createCompilerError(46 /* ErrorCodes.X_PREFIX_ID_NOT_SUPPORTED */));
+            onError(createCompilerError(47 /* ErrorCodes.X_PREFIX_ID_NOT_SUPPORTED */));
         }
         else if (isModuleMode) {
-            onError(createCompilerError(47 /* ErrorCodes.X_MODULE_MODE_NOT_SUPPORTED */));
+            onError(createCompilerError(48 /* ErrorCodes.X_MODULE_MODE_NOT_SUPPORTED */));
         }
     }
     const prefixIdentifiers = !true ;
     if (options.cacheHandlers) {
-        onError(createCompilerError(48 /* ErrorCodes.X_CACHE_HANDLER_NOT_SUPPORTED */));
+        onError(createCompilerError(49 /* ErrorCodes.X_CACHE_HANDLER_NOT_SUPPORTED */));
     }
     if (options.scopeId && !isModuleMode) {
-        onError(createCompilerError(49 /* ErrorCodes.X_SCOPE_ID_NOT_SUPPORTED */));
+        onError(createCompilerError(50 /* ErrorCodes.X_SCOPE_ID_NOT_SUPPORTED */));
     }
     const ast = (0,_vue_shared__WEBPACK_IMPORTED_MODULE_0__.isString)(template) ? baseParse(template, options) : template;
     const [nodeTransforms, directiveTransforms] = getBaseTransformPreset();
@@ -5019,677 +5056,6 @@ function baseCompile(template, options = {}) {
 }
 
 const noopDirectiveTransform = () => ({ props: [] });
-
-
-
-
-/***/ }),
-
-/***/ "./node_modules/@vue/compiler-core/node_modules/@vue/shared/dist/shared.esm-bundler.js":
-/*!*********************************************************************************************!*\
-  !*** ./node_modules/@vue/compiler-core/node_modules/@vue/shared/dist/shared.esm-bundler.js ***!
-  \*********************************************************************************************/
-/***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
-
-"use strict";
-__webpack_require__.r(__webpack_exports__);
-/* harmony export */ __webpack_require__.d(__webpack_exports__, {
-/* harmony export */   "EMPTY_ARR": () => (/* binding */ EMPTY_ARR),
-/* harmony export */   "EMPTY_OBJ": () => (/* binding */ EMPTY_OBJ),
-/* harmony export */   "NO": () => (/* binding */ NO),
-/* harmony export */   "NOOP": () => (/* binding */ NOOP),
-/* harmony export */   "PatchFlagNames": () => (/* binding */ PatchFlagNames),
-/* harmony export */   "camelize": () => (/* binding */ camelize),
-/* harmony export */   "capitalize": () => (/* binding */ capitalize),
-/* harmony export */   "def": () => (/* binding */ def),
-/* harmony export */   "escapeHtml": () => (/* binding */ escapeHtml),
-/* harmony export */   "escapeHtmlComment": () => (/* binding */ escapeHtmlComment),
-/* harmony export */   "extend": () => (/* binding */ extend),
-/* harmony export */   "genPropsAccessExp": () => (/* binding */ genPropsAccessExp),
-/* harmony export */   "generateCodeFrame": () => (/* binding */ generateCodeFrame),
-/* harmony export */   "getGlobalThis": () => (/* binding */ getGlobalThis),
-/* harmony export */   "hasChanged": () => (/* binding */ hasChanged),
-/* harmony export */   "hasOwn": () => (/* binding */ hasOwn),
-/* harmony export */   "hyphenate": () => (/* binding */ hyphenate),
-/* harmony export */   "includeBooleanAttr": () => (/* binding */ includeBooleanAttr),
-/* harmony export */   "invokeArrayFns": () => (/* binding */ invokeArrayFns),
-/* harmony export */   "isArray": () => (/* binding */ isArray),
-/* harmony export */   "isBooleanAttr": () => (/* binding */ isBooleanAttr),
-/* harmony export */   "isBuiltInDirective": () => (/* binding */ isBuiltInDirective),
-/* harmony export */   "isDate": () => (/* binding */ isDate),
-/* harmony export */   "isFunction": () => (/* binding */ isFunction),
-/* harmony export */   "isGloballyWhitelisted": () => (/* binding */ isGloballyWhitelisted),
-/* harmony export */   "isHTMLTag": () => (/* binding */ isHTMLTag),
-/* harmony export */   "isIntegerKey": () => (/* binding */ isIntegerKey),
-/* harmony export */   "isKnownHtmlAttr": () => (/* binding */ isKnownHtmlAttr),
-/* harmony export */   "isKnownSvgAttr": () => (/* binding */ isKnownSvgAttr),
-/* harmony export */   "isMap": () => (/* binding */ isMap),
-/* harmony export */   "isModelListener": () => (/* binding */ isModelListener),
-/* harmony export */   "isNoUnitNumericStyleProp": () => (/* binding */ isNoUnitNumericStyleProp),
-/* harmony export */   "isObject": () => (/* binding */ isObject),
-/* harmony export */   "isOn": () => (/* binding */ isOn),
-/* harmony export */   "isPlainObject": () => (/* binding */ isPlainObject),
-/* harmony export */   "isPromise": () => (/* binding */ isPromise),
-/* harmony export */   "isReservedProp": () => (/* binding */ isReservedProp),
-/* harmony export */   "isSSRSafeAttrName": () => (/* binding */ isSSRSafeAttrName),
-/* harmony export */   "isSVGTag": () => (/* binding */ isSVGTag),
-/* harmony export */   "isSet": () => (/* binding */ isSet),
-/* harmony export */   "isSpecialBooleanAttr": () => (/* binding */ isSpecialBooleanAttr),
-/* harmony export */   "isString": () => (/* binding */ isString),
-/* harmony export */   "isSymbol": () => (/* binding */ isSymbol),
-/* harmony export */   "isVoidTag": () => (/* binding */ isVoidTag),
-/* harmony export */   "looseEqual": () => (/* binding */ looseEqual),
-/* harmony export */   "looseIndexOf": () => (/* binding */ looseIndexOf),
-/* harmony export */   "makeMap": () => (/* binding */ makeMap),
-/* harmony export */   "normalizeClass": () => (/* binding */ normalizeClass),
-/* harmony export */   "normalizeProps": () => (/* binding */ normalizeProps),
-/* harmony export */   "normalizeStyle": () => (/* binding */ normalizeStyle),
-/* harmony export */   "objectToString": () => (/* binding */ objectToString),
-/* harmony export */   "parseStringStyle": () => (/* binding */ parseStringStyle),
-/* harmony export */   "propsToAttrMap": () => (/* binding */ propsToAttrMap),
-/* harmony export */   "remove": () => (/* binding */ remove),
-/* harmony export */   "slotFlagsText": () => (/* binding */ slotFlagsText),
-/* harmony export */   "stringifyStyle": () => (/* binding */ stringifyStyle),
-/* harmony export */   "toDisplayString": () => (/* binding */ toDisplayString),
-/* harmony export */   "toHandlerKey": () => (/* binding */ toHandlerKey),
-/* harmony export */   "toNumber": () => (/* binding */ toNumber),
-/* harmony export */   "toRawType": () => (/* binding */ toRawType),
-/* harmony export */   "toTypeString": () => (/* binding */ toTypeString)
-/* harmony export */ });
-/**
- * Make a map and return a function for checking if a key
- * is in that map.
- * IMPORTANT: all calls of this function must be prefixed with
- * \/\*#\_\_PURE\_\_\*\/
- * So that rollup can tree-shake them if necessary.
- */
-function makeMap(str, expectsLowerCase) {
-    const map = Object.create(null);
-    const list = str.split(',');
-    for (let i = 0; i < list.length; i++) {
-        map[list[i]] = true;
-    }
-    return expectsLowerCase ? val => !!map[val.toLowerCase()] : val => !!map[val];
-}
-
-/**
- * dev only flag -> name mapping
- */
-const PatchFlagNames = {
-    [1 /* PatchFlags.TEXT */]: `TEXT`,
-    [2 /* PatchFlags.CLASS */]: `CLASS`,
-    [4 /* PatchFlags.STYLE */]: `STYLE`,
-    [8 /* PatchFlags.PROPS */]: `PROPS`,
-    [16 /* PatchFlags.FULL_PROPS */]: `FULL_PROPS`,
-    [32 /* PatchFlags.HYDRATE_EVENTS */]: `HYDRATE_EVENTS`,
-    [64 /* PatchFlags.STABLE_FRAGMENT */]: `STABLE_FRAGMENT`,
-    [128 /* PatchFlags.KEYED_FRAGMENT */]: `KEYED_FRAGMENT`,
-    [256 /* PatchFlags.UNKEYED_FRAGMENT */]: `UNKEYED_FRAGMENT`,
-    [512 /* PatchFlags.NEED_PATCH */]: `NEED_PATCH`,
-    [1024 /* PatchFlags.DYNAMIC_SLOTS */]: `DYNAMIC_SLOTS`,
-    [2048 /* PatchFlags.DEV_ROOT_FRAGMENT */]: `DEV_ROOT_FRAGMENT`,
-    [-1 /* PatchFlags.HOISTED */]: `HOISTED`,
-    [-2 /* PatchFlags.BAIL */]: `BAIL`
-};
-
-/**
- * Dev only
- */
-const slotFlagsText = {
-    [1 /* SlotFlags.STABLE */]: 'STABLE',
-    [2 /* SlotFlags.DYNAMIC */]: 'DYNAMIC',
-    [3 /* SlotFlags.FORWARDED */]: 'FORWARDED'
-};
-
-const GLOBALS_WHITE_LISTED = 'Infinity,undefined,NaN,isFinite,isNaN,parseFloat,parseInt,decodeURI,' +
-    'decodeURIComponent,encodeURI,encodeURIComponent,Math,Number,Date,Array,' +
-    'Object,Boolean,String,RegExp,Map,Set,JSON,Intl,BigInt';
-const isGloballyWhitelisted = /*#__PURE__*/ makeMap(GLOBALS_WHITE_LISTED);
-
-const range = 2;
-function generateCodeFrame(source, start = 0, end = source.length) {
-    // Split the content into individual lines but capture the newline sequence
-    // that separated each line. This is important because the actual sequence is
-    // needed to properly take into account the full line length for offset
-    // comparison
-    let lines = source.split(/(\r?\n)/);
-    // Separate the lines and newline sequences into separate arrays for easier referencing
-    const newlineSequences = lines.filter((_, idx) => idx % 2 === 1);
-    lines = lines.filter((_, idx) => idx % 2 === 0);
-    let count = 0;
-    const res = [];
-    for (let i = 0; i < lines.length; i++) {
-        count +=
-            lines[i].length +
-                ((newlineSequences[i] && newlineSequences[i].length) || 0);
-        if (count >= start) {
-            for (let j = i - range; j <= i + range || end > count; j++) {
-                if (j < 0 || j >= lines.length)
-                    continue;
-                const line = j + 1;
-                res.push(`${line}${' '.repeat(Math.max(3 - String(line).length, 0))}|  ${lines[j]}`);
-                const lineLength = lines[j].length;
-                const newLineSeqLength = (newlineSequences[j] && newlineSequences[j].length) || 0;
-                if (j === i) {
-                    // push underline
-                    const pad = start - (count - (lineLength + newLineSeqLength));
-                    const length = Math.max(1, end > count ? lineLength - pad : end - start);
-                    res.push(`   |  ` + ' '.repeat(pad) + '^'.repeat(length));
-                }
-                else if (j > i) {
-                    if (end > count) {
-                        const length = Math.max(Math.min(end - count, lineLength), 1);
-                        res.push(`   |  ` + '^'.repeat(length));
-                    }
-                    count += lineLength + newLineSeqLength;
-                }
-            }
-            break;
-        }
-    }
-    return res.join('\n');
-}
-
-/**
- * On the client we only need to offer special cases for boolean attributes that
- * have different names from their corresponding dom properties:
- * - itemscope -> N/A
- * - allowfullscreen -> allowFullscreen
- * - formnovalidate -> formNoValidate
- * - ismap -> isMap
- * - nomodule -> noModule
- * - novalidate -> noValidate
- * - readonly -> readOnly
- */
-const specialBooleanAttrs = `itemscope,allowfullscreen,formnovalidate,ismap,nomodule,novalidate,readonly`;
-const isSpecialBooleanAttr = /*#__PURE__*/ makeMap(specialBooleanAttrs);
-/**
- * The full list is needed during SSR to produce the correct initial markup.
- */
-const isBooleanAttr = /*#__PURE__*/ makeMap(specialBooleanAttrs +
-    `,async,autofocus,autoplay,controls,default,defer,disabled,hidden,` +
-    `loop,open,required,reversed,scoped,seamless,` +
-    `checked,muted,multiple,selected`);
-/**
- * Boolean attributes should be included if the value is truthy or ''.
- * e.g. `<select multiple>` compiles to `{ multiple: '' }`
- */
-function includeBooleanAttr(value) {
-    return !!value || value === '';
-}
-const unsafeAttrCharRE = /[>/="'\u0009\u000a\u000c\u0020]/;
-const attrValidationCache = {};
-function isSSRSafeAttrName(name) {
-    if (attrValidationCache.hasOwnProperty(name)) {
-        return attrValidationCache[name];
-    }
-    const isUnsafe = unsafeAttrCharRE.test(name);
-    if (isUnsafe) {
-        console.error(`unsafe attribute name: ${name}`);
-    }
-    return (attrValidationCache[name] = !isUnsafe);
-}
-const propsToAttrMap = {
-    acceptCharset: 'accept-charset',
-    className: 'class',
-    htmlFor: 'for',
-    httpEquiv: 'http-equiv'
-};
-/**
- * CSS properties that accept plain numbers
- */
-const isNoUnitNumericStyleProp = /*#__PURE__*/ makeMap(`animation-iteration-count,border-image-outset,border-image-slice,` +
-    `border-image-width,box-flex,box-flex-group,box-ordinal-group,column-count,` +
-    `columns,flex,flex-grow,flex-positive,flex-shrink,flex-negative,flex-order,` +
-    `grid-row,grid-row-end,grid-row-span,grid-row-start,grid-column,` +
-    `grid-column-end,grid-column-span,grid-column-start,font-weight,line-clamp,` +
-    `line-height,opacity,order,orphans,tab-size,widows,z-index,zoom,` +
-    // SVG
-    `fill-opacity,flood-opacity,stop-opacity,stroke-dasharray,stroke-dashoffset,` +
-    `stroke-miterlimit,stroke-opacity,stroke-width`);
-/**
- * Known attributes, this is used for stringification of runtime static nodes
- * so that we don't stringify bindings that cannot be set from HTML.
- * Don't also forget to allow `data-*` and `aria-*`!
- * Generated from https://developer.mozilla.org/en-US/docs/Web/HTML/Attributes
- */
-const isKnownHtmlAttr = /*#__PURE__*/ makeMap(`accept,accept-charset,accesskey,action,align,allow,alt,async,` +
-    `autocapitalize,autocomplete,autofocus,autoplay,background,bgcolor,` +
-    `border,buffered,capture,challenge,charset,checked,cite,class,code,` +
-    `codebase,color,cols,colspan,content,contenteditable,contextmenu,controls,` +
-    `coords,crossorigin,csp,data,datetime,decoding,default,defer,dir,dirname,` +
-    `disabled,download,draggable,dropzone,enctype,enterkeyhint,for,form,` +
-    `formaction,formenctype,formmethod,formnovalidate,formtarget,headers,` +
-    `height,hidden,high,href,hreflang,http-equiv,icon,id,importance,integrity,` +
-    `ismap,itemprop,keytype,kind,label,lang,language,loading,list,loop,low,` +
-    `manifest,max,maxlength,minlength,media,min,multiple,muted,name,novalidate,` +
-    `open,optimum,pattern,ping,placeholder,poster,preload,radiogroup,readonly,` +
-    `referrerpolicy,rel,required,reversed,rows,rowspan,sandbox,scope,scoped,` +
-    `selected,shape,size,sizes,slot,span,spellcheck,src,srcdoc,srclang,srcset,` +
-    `start,step,style,summary,tabindex,target,title,translate,type,usemap,` +
-    `value,width,wrap`);
-/**
- * Generated from https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute
- */
-const isKnownSvgAttr = /*#__PURE__*/ makeMap(`xmlns,accent-height,accumulate,additive,alignment-baseline,alphabetic,amplitude,` +
-    `arabic-form,ascent,attributeName,attributeType,azimuth,baseFrequency,` +
-    `baseline-shift,baseProfile,bbox,begin,bias,by,calcMode,cap-height,class,` +
-    `clip,clipPathUnits,clip-path,clip-rule,color,color-interpolation,` +
-    `color-interpolation-filters,color-profile,color-rendering,` +
-    `contentScriptType,contentStyleType,crossorigin,cursor,cx,cy,d,decelerate,` +
-    `descent,diffuseConstant,direction,display,divisor,dominant-baseline,dur,dx,` +
-    `dy,edgeMode,elevation,enable-background,end,exponent,fill,fill-opacity,` +
-    `fill-rule,filter,filterRes,filterUnits,flood-color,flood-opacity,` +
-    `font-family,font-size,font-size-adjust,font-stretch,font-style,` +
-    `font-variant,font-weight,format,from,fr,fx,fy,g1,g2,glyph-name,` +
-    `glyph-orientation-horizontal,glyph-orientation-vertical,glyphRef,` +
-    `gradientTransform,gradientUnits,hanging,height,href,hreflang,horiz-adv-x,` +
-    `horiz-origin-x,id,ideographic,image-rendering,in,in2,intercept,k,k1,k2,k3,` +
-    `k4,kernelMatrix,kernelUnitLength,kerning,keyPoints,keySplines,keyTimes,` +
-    `lang,lengthAdjust,letter-spacing,lighting-color,limitingConeAngle,local,` +
-    `marker-end,marker-mid,marker-start,markerHeight,markerUnits,markerWidth,` +
-    `mask,maskContentUnits,maskUnits,mathematical,max,media,method,min,mode,` +
-    `name,numOctaves,offset,opacity,operator,order,orient,orientation,origin,` +
-    `overflow,overline-position,overline-thickness,panose-1,paint-order,path,` +
-    `pathLength,patternContentUnits,patternTransform,patternUnits,ping,` +
-    `pointer-events,points,pointsAtX,pointsAtY,pointsAtZ,preserveAlpha,` +
-    `preserveAspectRatio,primitiveUnits,r,radius,referrerPolicy,refX,refY,rel,` +
-    `rendering-intent,repeatCount,repeatDur,requiredExtensions,requiredFeatures,` +
-    `restart,result,rotate,rx,ry,scale,seed,shape-rendering,slope,spacing,` +
-    `specularConstant,specularExponent,speed,spreadMethod,startOffset,` +
-    `stdDeviation,stemh,stemv,stitchTiles,stop-color,stop-opacity,` +
-    `strikethrough-position,strikethrough-thickness,string,stroke,` +
-    `stroke-dasharray,stroke-dashoffset,stroke-linecap,stroke-linejoin,` +
-    `stroke-miterlimit,stroke-opacity,stroke-width,style,surfaceScale,` +
-    `systemLanguage,tabindex,tableValues,target,targetX,targetY,text-anchor,` +
-    `text-decoration,text-rendering,textLength,to,transform,transform-origin,` +
-    `type,u1,u2,underline-position,underline-thickness,unicode,unicode-bidi,` +
-    `unicode-range,units-per-em,v-alphabetic,v-hanging,v-ideographic,` +
-    `v-mathematical,values,vector-effect,version,vert-adv-y,vert-origin-x,` +
-    `vert-origin-y,viewBox,viewTarget,visibility,width,widths,word-spacing,` +
-    `writing-mode,x,x-height,x1,x2,xChannelSelector,xlink:actuate,xlink:arcrole,` +
-    `xlink:href,xlink:role,xlink:show,xlink:title,xlink:type,xml:base,xml:lang,` +
-    `xml:space,y,y1,y2,yChannelSelector,z,zoomAndPan`);
-
-function normalizeStyle(value) {
-    if (isArray(value)) {
-        const res = {};
-        for (let i = 0; i < value.length; i++) {
-            const item = value[i];
-            const normalized = isString(item)
-                ? parseStringStyle(item)
-                : normalizeStyle(item);
-            if (normalized) {
-                for (const key in normalized) {
-                    res[key] = normalized[key];
-                }
-            }
-        }
-        return res;
-    }
-    else if (isString(value)) {
-        return value;
-    }
-    else if (isObject(value)) {
-        return value;
-    }
-}
-const listDelimiterRE = /;(?![^(]*\))/g;
-const propertyDelimiterRE = /:(.+)/;
-function parseStringStyle(cssText) {
-    const ret = {};
-    cssText.split(listDelimiterRE).forEach(item => {
-        if (item) {
-            const tmp = item.split(propertyDelimiterRE);
-            tmp.length > 1 && (ret[tmp[0].trim()] = tmp[1].trim());
-        }
-    });
-    return ret;
-}
-function stringifyStyle(styles) {
-    let ret = '';
-    if (!styles || isString(styles)) {
-        return ret;
-    }
-    for (const key in styles) {
-        const value = styles[key];
-        const normalizedKey = key.startsWith(`--`) ? key : hyphenate(key);
-        if (isString(value) ||
-            (typeof value === 'number' && isNoUnitNumericStyleProp(normalizedKey))) {
-            // only render valid values
-            ret += `${normalizedKey}:${value};`;
-        }
-    }
-    return ret;
-}
-function normalizeClass(value) {
-    let res = '';
-    if (isString(value)) {
-        res = value;
-    }
-    else if (isArray(value)) {
-        for (let i = 0; i < value.length; i++) {
-            const normalized = normalizeClass(value[i]);
-            if (normalized) {
-                res += normalized + ' ';
-            }
-        }
-    }
-    else if (isObject(value)) {
-        for (const name in value) {
-            if (value[name]) {
-                res += name + ' ';
-            }
-        }
-    }
-    return res.trim();
-}
-function normalizeProps(props) {
-    if (!props)
-        return null;
-    let { class: klass, style } = props;
-    if (klass && !isString(klass)) {
-        props.class = normalizeClass(klass);
-    }
-    if (style) {
-        props.style = normalizeStyle(style);
-    }
-    return props;
-}
-
-// These tag configs are shared between compiler-dom and runtime-dom, so they
-// https://developer.mozilla.org/en-US/docs/Web/HTML/Element
-const HTML_TAGS = 'html,body,base,head,link,meta,style,title,address,article,aside,footer,' +
-    'header,h1,h2,h3,h4,h5,h6,nav,section,div,dd,dl,dt,figcaption,' +
-    'figure,picture,hr,img,li,main,ol,p,pre,ul,a,b,abbr,bdi,bdo,br,cite,code,' +
-    'data,dfn,em,i,kbd,mark,q,rp,rt,ruby,s,samp,small,span,strong,sub,sup,' +
-    'time,u,var,wbr,area,audio,map,track,video,embed,object,param,source,' +
-    'canvas,script,noscript,del,ins,caption,col,colgroup,table,thead,tbody,td,' +
-    'th,tr,button,datalist,fieldset,form,input,label,legend,meter,optgroup,' +
-    'option,output,progress,select,textarea,details,dialog,menu,' +
-    'summary,template,blockquote,iframe,tfoot';
-// https://developer.mozilla.org/en-US/docs/Web/SVG/Element
-const SVG_TAGS = 'svg,animate,animateMotion,animateTransform,circle,clipPath,color-profile,' +
-    'defs,desc,discard,ellipse,feBlend,feColorMatrix,feComponentTransfer,' +
-    'feComposite,feConvolveMatrix,feDiffuseLighting,feDisplacementMap,' +
-    'feDistanceLight,feDropShadow,feFlood,feFuncA,feFuncB,feFuncG,feFuncR,' +
-    'feGaussianBlur,feImage,feMerge,feMergeNode,feMorphology,feOffset,' +
-    'fePointLight,feSpecularLighting,feSpotLight,feTile,feTurbulence,filter,' +
-    'foreignObject,g,hatch,hatchpath,image,line,linearGradient,marker,mask,' +
-    'mesh,meshgradient,meshpatch,meshrow,metadata,mpath,path,pattern,' +
-    'polygon,polyline,radialGradient,rect,set,solidcolor,stop,switch,symbol,' +
-    'text,textPath,title,tspan,unknown,use,view';
-const VOID_TAGS = 'area,base,br,col,embed,hr,img,input,link,meta,param,source,track,wbr';
-/**
- * Compiler only.
- * Do NOT use in runtime code paths unless behind `(process.env.NODE_ENV !== 'production')` flag.
- */
-const isHTMLTag = /*#__PURE__*/ makeMap(HTML_TAGS);
-/**
- * Compiler only.
- * Do NOT use in runtime code paths unless behind `(process.env.NODE_ENV !== 'production')` flag.
- */
-const isSVGTag = /*#__PURE__*/ makeMap(SVG_TAGS);
-/**
- * Compiler only.
- * Do NOT use in runtime code paths unless behind `(process.env.NODE_ENV !== 'production')` flag.
- */
-const isVoidTag = /*#__PURE__*/ makeMap(VOID_TAGS);
-
-const escapeRE = /["'&<>]/;
-function escapeHtml(string) {
-    const str = '' + string;
-    const match = escapeRE.exec(str);
-    if (!match) {
-        return str;
-    }
-    let html = '';
-    let escaped;
-    let index;
-    let lastIndex = 0;
-    for (index = match.index; index < str.length; index++) {
-        switch (str.charCodeAt(index)) {
-            case 34: // "
-                escaped = '&quot;';
-                break;
-            case 38: // &
-                escaped = '&amp;';
-                break;
-            case 39: // '
-                escaped = '&#39;';
-                break;
-            case 60: // <
-                escaped = '&lt;';
-                break;
-            case 62: // >
-                escaped = '&gt;';
-                break;
-            default:
-                continue;
-        }
-        if (lastIndex !== index) {
-            html += str.slice(lastIndex, index);
-        }
-        lastIndex = index + 1;
-        html += escaped;
-    }
-    return lastIndex !== index ? html + str.slice(lastIndex, index) : html;
-}
-// https://www.w3.org/TR/html52/syntax.html#comments
-const commentStripRE = /^-?>|<!--|-->|--!>|<!-$/g;
-function escapeHtmlComment(src) {
-    return src.replace(commentStripRE, '');
-}
-
-function looseCompareArrays(a, b) {
-    if (a.length !== b.length)
-        return false;
-    let equal = true;
-    for (let i = 0; equal && i < a.length; i++) {
-        equal = looseEqual(a[i], b[i]);
-    }
-    return equal;
-}
-function looseEqual(a, b) {
-    if (a === b)
-        return true;
-    let aValidType = isDate(a);
-    let bValidType = isDate(b);
-    if (aValidType || bValidType) {
-        return aValidType && bValidType ? a.getTime() === b.getTime() : false;
-    }
-    aValidType = isSymbol(a);
-    bValidType = isSymbol(b);
-    if (aValidType || bValidType) {
-        return a === b;
-    }
-    aValidType = isArray(a);
-    bValidType = isArray(b);
-    if (aValidType || bValidType) {
-        return aValidType && bValidType ? looseCompareArrays(a, b) : false;
-    }
-    aValidType = isObject(a);
-    bValidType = isObject(b);
-    if (aValidType || bValidType) {
-        /* istanbul ignore if: this if will probably never be called */
-        if (!aValidType || !bValidType) {
-            return false;
-        }
-        const aKeysCount = Object.keys(a).length;
-        const bKeysCount = Object.keys(b).length;
-        if (aKeysCount !== bKeysCount) {
-            return false;
-        }
-        for (const key in a) {
-            const aHasKey = a.hasOwnProperty(key);
-            const bHasKey = b.hasOwnProperty(key);
-            if ((aHasKey && !bHasKey) ||
-                (!aHasKey && bHasKey) ||
-                !looseEqual(a[key], b[key])) {
-                return false;
-            }
-        }
-    }
-    return String(a) === String(b);
-}
-function looseIndexOf(arr, val) {
-    return arr.findIndex(item => looseEqual(item, val));
-}
-
-/**
- * For converting {{ interpolation }} values to displayed strings.
- * @private
- */
-const toDisplayString = (val) => {
-    return isString(val)
-        ? val
-        : val == null
-            ? ''
-            : isArray(val) ||
-                (isObject(val) &&
-                    (val.toString === objectToString || !isFunction(val.toString)))
-                ? JSON.stringify(val, replacer, 2)
-                : String(val);
-};
-const replacer = (_key, val) => {
-    // can't use isRef here since @vue/shared has no deps
-    if (val && val.__v_isRef) {
-        return replacer(_key, val.value);
-    }
-    else if (isMap(val)) {
-        return {
-            [`Map(${val.size})`]: [...val.entries()].reduce((entries, [key, val]) => {
-                entries[`${key} =>`] = val;
-                return entries;
-            }, {})
-        };
-    }
-    else if (isSet(val)) {
-        return {
-            [`Set(${val.size})`]: [...val.values()]
-        };
-    }
-    else if (isObject(val) && !isArray(val) && !isPlainObject(val)) {
-        return String(val);
-    }
-    return val;
-};
-
-const EMPTY_OBJ = ( true)
-    ? Object.freeze({})
-    : 0;
-const EMPTY_ARR = ( true) ? Object.freeze([]) : 0;
-const NOOP = () => { };
-/**
- * Always return false.
- */
-const NO = () => false;
-const onRE = /^on[^a-z]/;
-const isOn = (key) => onRE.test(key);
-const isModelListener = (key) => key.startsWith('onUpdate:');
-const extend = Object.assign;
-const remove = (arr, el) => {
-    const i = arr.indexOf(el);
-    if (i > -1) {
-        arr.splice(i, 1);
-    }
-};
-const hasOwnProperty = Object.prototype.hasOwnProperty;
-const hasOwn = (val, key) => hasOwnProperty.call(val, key);
-const isArray = Array.isArray;
-const isMap = (val) => toTypeString(val) === '[object Map]';
-const isSet = (val) => toTypeString(val) === '[object Set]';
-const isDate = (val) => toTypeString(val) === '[object Date]';
-const isFunction = (val) => typeof val === 'function';
-const isString = (val) => typeof val === 'string';
-const isSymbol = (val) => typeof val === 'symbol';
-const isObject = (val) => val !== null && typeof val === 'object';
-const isPromise = (val) => {
-    return isObject(val) && isFunction(val.then) && isFunction(val.catch);
-};
-const objectToString = Object.prototype.toString;
-const toTypeString = (value) => objectToString.call(value);
-const toRawType = (value) => {
-    // extract "RawType" from strings like "[object RawType]"
-    return toTypeString(value).slice(8, -1);
-};
-const isPlainObject = (val) => toTypeString(val) === '[object Object]';
-const isIntegerKey = (key) => isString(key) &&
-    key !== 'NaN' &&
-    key[0] !== '-' &&
-    '' + parseInt(key, 10) === key;
-const isReservedProp = /*#__PURE__*/ makeMap(
-// the leading comma is intentional so empty string "" is also included
-',key,ref,ref_for,ref_key,' +
-    'onVnodeBeforeMount,onVnodeMounted,' +
-    'onVnodeBeforeUpdate,onVnodeUpdated,' +
-    'onVnodeBeforeUnmount,onVnodeUnmounted');
-const isBuiltInDirective = /*#__PURE__*/ makeMap('bind,cloak,else-if,else,for,html,if,model,on,once,pre,show,slot,text,memo');
-const cacheStringFunction = (fn) => {
-    const cache = Object.create(null);
-    return ((str) => {
-        const hit = cache[str];
-        return hit || (cache[str] = fn(str));
-    });
-};
-const camelizeRE = /-(\w)/g;
-/**
- * @private
- */
-const camelize = cacheStringFunction((str) => {
-    return str.replace(camelizeRE, (_, c) => (c ? c.toUpperCase() : ''));
-});
-const hyphenateRE = /\B([A-Z])/g;
-/**
- * @private
- */
-const hyphenate = cacheStringFunction((str) => str.replace(hyphenateRE, '-$1').toLowerCase());
-/**
- * @private
- */
-const capitalize = cacheStringFunction((str) => str.charAt(0).toUpperCase() + str.slice(1));
-/**
- * @private
- */
-const toHandlerKey = cacheStringFunction((str) => str ? `on${capitalize(str)}` : ``);
-// compare whether a value has changed, accounting for NaN.
-const hasChanged = (value, oldValue) => !Object.is(value, oldValue);
-const invokeArrayFns = (fns, arg) => {
-    for (let i = 0; i < fns.length; i++) {
-        fns[i](arg);
-    }
-};
-const def = (obj, key, value) => {
-    Object.defineProperty(obj, key, {
-        configurable: true,
-        enumerable: false,
-        value
-    });
-};
-const toNumber = (val) => {
-    const n = parseFloat(val);
-    return isNaN(n) ? val : n;
-};
-let _globalThis;
-const getGlobalThis = () => {
-    return (_globalThis ||
-        (_globalThis =
-            typeof globalThis !== 'undefined'
-                ? globalThis
-                : typeof self !== 'undefined'
-                    ? self
-                    : typeof window !== 'undefined'
-                        ? window
-                        : typeof __webpack_require__.g !== 'undefined'
-                            ? __webpack_require__.g
-                            : {}));
-};
-const identRE = /^[_$a-zA-Z\xA0-\uFFFF][_$a-zA-Z0-9\xA0-\uFFFF]*$/;
-function genPropsAccessExp(name) {
-    return identRE.test(name)
-        ? `__props.${name}`
-        : `__props[${JSON.stringify(name)}]`;
-}
 
 
 
@@ -5832,6 +5198,7 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony export */   "processSlotOutlet": () => (/* reexport safe */ _vue_compiler_core__WEBPACK_IMPORTED_MODULE_0__.processSlotOutlet),
 /* harmony export */   "registerRuntimeHelpers": () => (/* reexport safe */ _vue_compiler_core__WEBPACK_IMPORTED_MODULE_0__.registerRuntimeHelpers),
 /* harmony export */   "resolveComponentType": () => (/* reexport safe */ _vue_compiler_core__WEBPACK_IMPORTED_MODULE_0__.resolveComponentType),
+/* harmony export */   "stringifyExpression": () => (/* reexport safe */ _vue_compiler_core__WEBPACK_IMPORTED_MODULE_0__.stringifyExpression),
 /* harmony export */   "toValidAssetId": () => (/* reexport safe */ _vue_compiler_core__WEBPACK_IMPORTED_MODULE_0__.toValidAssetId),
 /* harmony export */   "trackSlotScopes": () => (/* reexport safe */ _vue_compiler_core__WEBPACK_IMPORTED_MODULE_0__.trackSlotScopes),
 /* harmony export */   "trackVForSlotScopes": () => (/* reexport safe */ _vue_compiler_core__WEBPACK_IMPORTED_MODULE_0__.trackVForSlotScopes),
@@ -5849,7 +5216,7 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony export */   "warnDeprecation": () => (/* reexport safe */ _vue_compiler_core__WEBPACK_IMPORTED_MODULE_0__.warnDeprecation)
 /* harmony export */ });
 /* harmony import */ var _vue_compiler_core__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! @vue/compiler-core */ "./node_modules/@vue/compiler-core/dist/compiler-core.esm-bundler.js");
-/* harmony import */ var _vue_shared__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! @vue/shared */ "./node_modules/@vue/compiler-dom/node_modules/@vue/shared/dist/shared.esm-bundler.js");
+/* harmony import */ var _vue_shared__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! @vue/shared */ "./node_modules/@vue/shared/dist/shared.esm-bundler.js");
 
 
 
@@ -5992,26 +5359,26 @@ function createDOMCompilerError(code, loc) {
     return (0,_vue_compiler_core__WEBPACK_IMPORTED_MODULE_0__.createCompilerError)(code, loc,  true ? DOMErrorMessages : 0);
 }
 const DOMErrorMessages = {
-    [50 /* DOMErrorCodes.X_V_HTML_NO_EXPRESSION */]: `v-html is missing expression.`,
-    [51 /* DOMErrorCodes.X_V_HTML_WITH_CHILDREN */]: `v-html will override element children.`,
-    [52 /* DOMErrorCodes.X_V_TEXT_NO_EXPRESSION */]: `v-text is missing expression.`,
-    [53 /* DOMErrorCodes.X_V_TEXT_WITH_CHILDREN */]: `v-text will override element children.`,
-    [54 /* DOMErrorCodes.X_V_MODEL_ON_INVALID_ELEMENT */]: `v-model can only be used on <input>, <textarea> and <select> elements.`,
-    [55 /* DOMErrorCodes.X_V_MODEL_ARG_ON_ELEMENT */]: `v-model argument is not supported on plain elements.`,
-    [56 /* DOMErrorCodes.X_V_MODEL_ON_FILE_INPUT_ELEMENT */]: `v-model cannot be used on file inputs since they are read-only. Use a v-on:change listener instead.`,
-    [57 /* DOMErrorCodes.X_V_MODEL_UNNECESSARY_VALUE */]: `Unnecessary value binding used alongside v-model. It will interfere with v-model's behavior.`,
-    [58 /* DOMErrorCodes.X_V_SHOW_NO_EXPRESSION */]: `v-show is missing expression.`,
-    [59 /* DOMErrorCodes.X_TRANSITION_INVALID_CHILDREN */]: `<Transition> expects exactly one child element or component.`,
-    [60 /* DOMErrorCodes.X_IGNORED_SIDE_EFFECT_TAG */]: `Tags with side effect (<script> and <style>) are ignored in client component templates.`
+    [51 /* DOMErrorCodes.X_V_HTML_NO_EXPRESSION */]: `v-html is missing expression.`,
+    [52 /* DOMErrorCodes.X_V_HTML_WITH_CHILDREN */]: `v-html will override element children.`,
+    [53 /* DOMErrorCodes.X_V_TEXT_NO_EXPRESSION */]: `v-text is missing expression.`,
+    [54 /* DOMErrorCodes.X_V_TEXT_WITH_CHILDREN */]: `v-text will override element children.`,
+    [55 /* DOMErrorCodes.X_V_MODEL_ON_INVALID_ELEMENT */]: `v-model can only be used on <input>, <textarea> and <select> elements.`,
+    [56 /* DOMErrorCodes.X_V_MODEL_ARG_ON_ELEMENT */]: `v-model argument is not supported on plain elements.`,
+    [57 /* DOMErrorCodes.X_V_MODEL_ON_FILE_INPUT_ELEMENT */]: `v-model cannot be used on file inputs since they are read-only. Use a v-on:change listener instead.`,
+    [58 /* DOMErrorCodes.X_V_MODEL_UNNECESSARY_VALUE */]: `Unnecessary value binding used alongside v-model. It will interfere with v-model's behavior.`,
+    [59 /* DOMErrorCodes.X_V_SHOW_NO_EXPRESSION */]: `v-show is missing expression.`,
+    [60 /* DOMErrorCodes.X_TRANSITION_INVALID_CHILDREN */]: `<Transition> expects exactly one child element or component.`,
+    [61 /* DOMErrorCodes.X_IGNORED_SIDE_EFFECT_TAG */]: `Tags with side effect (<script> and <style>) are ignored in client component templates.`
 };
 
 const transformVHtml = (dir, node, context) => {
     const { exp, loc } = dir;
     if (!exp) {
-        context.onError(createDOMCompilerError(50 /* DOMErrorCodes.X_V_HTML_NO_EXPRESSION */, loc));
+        context.onError(createDOMCompilerError(51 /* DOMErrorCodes.X_V_HTML_NO_EXPRESSION */, loc));
     }
     if (node.children.length) {
-        context.onError(createDOMCompilerError(51 /* DOMErrorCodes.X_V_HTML_WITH_CHILDREN */, loc));
+        context.onError(createDOMCompilerError(52 /* DOMErrorCodes.X_V_HTML_WITH_CHILDREN */, loc));
         node.children.length = 0;
     }
     return {
@@ -6024,10 +5391,10 @@ const transformVHtml = (dir, node, context) => {
 const transformVText = (dir, node, context) => {
     const { exp, loc } = dir;
     if (!exp) {
-        context.onError(createDOMCompilerError(52 /* DOMErrorCodes.X_V_TEXT_NO_EXPRESSION */, loc));
+        context.onError(createDOMCompilerError(53 /* DOMErrorCodes.X_V_TEXT_NO_EXPRESSION */, loc));
     }
     if (node.children.length) {
-        context.onError(createDOMCompilerError(53 /* DOMErrorCodes.X_V_TEXT_WITH_CHILDREN */, loc));
+        context.onError(createDOMCompilerError(54 /* DOMErrorCodes.X_V_TEXT_WITH_CHILDREN */, loc));
         node.children.length = 0;
     }
     return {
@@ -6048,12 +5415,12 @@ const transformModel = (dir, node, context) => {
         return baseResult;
     }
     if (dir.arg) {
-        context.onError(createDOMCompilerError(55 /* DOMErrorCodes.X_V_MODEL_ARG_ON_ELEMENT */, dir.arg.loc));
+        context.onError(createDOMCompilerError(56 /* DOMErrorCodes.X_V_MODEL_ARG_ON_ELEMENT */, dir.arg.loc));
     }
     function checkDuplicatedValue() {
         const value = (0,_vue_compiler_core__WEBPACK_IMPORTED_MODULE_0__.findProp)(node, 'value');
         if (value) {
-            context.onError(createDOMCompilerError(57 /* DOMErrorCodes.X_V_MODEL_UNNECESSARY_VALUE */, value.loc));
+            context.onError(createDOMCompilerError(58 /* DOMErrorCodes.X_V_MODEL_UNNECESSARY_VALUE */, value.loc));
         }
     }
     const { tag } = node;
@@ -6081,7 +5448,7 @@ const transformModel = (dir, node, context) => {
                             break;
                         case 'file':
                             isInvalidType = true;
-                            context.onError(createDOMCompilerError(56 /* DOMErrorCodes.X_V_MODEL_ON_FILE_INPUT_ELEMENT */, dir.loc));
+                            context.onError(createDOMCompilerError(57 /* DOMErrorCodes.X_V_MODEL_ON_FILE_INPUT_ELEMENT */, dir.loc));
                             break;
                         default:
                             // text type
@@ -6115,7 +5482,7 @@ const transformModel = (dir, node, context) => {
         }
     }
     else {
-        context.onError(createDOMCompilerError(54 /* DOMErrorCodes.X_V_MODEL_ON_INVALID_ELEMENT */, dir.loc));
+        context.onError(createDOMCompilerError(55 /* DOMErrorCodes.X_V_MODEL_ON_INVALID_ELEMENT */, dir.loc));
     }
     // native vmodel doesn't need the `modelValue` props since they are also
     // passed to the runtime as `binding.value`. removing it reduces code size.
@@ -6239,7 +5606,7 @@ const transformOn = (dir, node, context) => {
 const transformShow = (dir, node, context) => {
     const { exp, loc } = dir;
     if (!exp) {
-        context.onError(createDOMCompilerError(58 /* DOMErrorCodes.X_V_SHOW_NO_EXPRESSION */, loc));
+        context.onError(createDOMCompilerError(59 /* DOMErrorCodes.X_V_SHOW_NO_EXPRESSION */, loc));
     }
     return {
         props: [],
@@ -6258,7 +5625,7 @@ const transformTransition = (node, context) => {
                 }
                 // warn multiple transition children
                 if (hasMultipleChildren(node)) {
-                    context.onError(createDOMCompilerError(59 /* DOMErrorCodes.X_TRANSITION_INVALID_CHILDREN */, {
+                    context.onError(createDOMCompilerError(60 /* DOMErrorCodes.X_TRANSITION_INVALID_CHILDREN */, {
                         start: node.children[0].loc.start,
                         end: node.children[node.children.length - 1].loc.end,
                         source: ''
@@ -6297,7 +5664,7 @@ const ignoreSideEffectTags = (node, context) => {
     if (node.type === 1 /* NodeTypes.ELEMENT */ &&
         node.tagType === 0 /* ElementTypes.ELEMENT */ &&
         (node.tag === 'script' || node.tag === 'style')) {
-        context.onError(createDOMCompilerError(60 /* DOMErrorCodes.X_IGNORED_SIDE_EFFECT_TAG */, node.loc));
+        context.onError(createDOMCompilerError(61 /* DOMErrorCodes.X_IGNORED_SIDE_EFFECT_TAG */, node.loc));
         context.removeNode();
     }
 };
@@ -6337,677 +5704,6 @@ function parse(template, options = {}) {
 
 /***/ }),
 
-/***/ "./node_modules/@vue/compiler-dom/node_modules/@vue/shared/dist/shared.esm-bundler.js":
-/*!********************************************************************************************!*\
-  !*** ./node_modules/@vue/compiler-dom/node_modules/@vue/shared/dist/shared.esm-bundler.js ***!
-  \********************************************************************************************/
-/***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
-
-"use strict";
-__webpack_require__.r(__webpack_exports__);
-/* harmony export */ __webpack_require__.d(__webpack_exports__, {
-/* harmony export */   "EMPTY_ARR": () => (/* binding */ EMPTY_ARR),
-/* harmony export */   "EMPTY_OBJ": () => (/* binding */ EMPTY_OBJ),
-/* harmony export */   "NO": () => (/* binding */ NO),
-/* harmony export */   "NOOP": () => (/* binding */ NOOP),
-/* harmony export */   "PatchFlagNames": () => (/* binding */ PatchFlagNames),
-/* harmony export */   "camelize": () => (/* binding */ camelize),
-/* harmony export */   "capitalize": () => (/* binding */ capitalize),
-/* harmony export */   "def": () => (/* binding */ def),
-/* harmony export */   "escapeHtml": () => (/* binding */ escapeHtml),
-/* harmony export */   "escapeHtmlComment": () => (/* binding */ escapeHtmlComment),
-/* harmony export */   "extend": () => (/* binding */ extend),
-/* harmony export */   "genPropsAccessExp": () => (/* binding */ genPropsAccessExp),
-/* harmony export */   "generateCodeFrame": () => (/* binding */ generateCodeFrame),
-/* harmony export */   "getGlobalThis": () => (/* binding */ getGlobalThis),
-/* harmony export */   "hasChanged": () => (/* binding */ hasChanged),
-/* harmony export */   "hasOwn": () => (/* binding */ hasOwn),
-/* harmony export */   "hyphenate": () => (/* binding */ hyphenate),
-/* harmony export */   "includeBooleanAttr": () => (/* binding */ includeBooleanAttr),
-/* harmony export */   "invokeArrayFns": () => (/* binding */ invokeArrayFns),
-/* harmony export */   "isArray": () => (/* binding */ isArray),
-/* harmony export */   "isBooleanAttr": () => (/* binding */ isBooleanAttr),
-/* harmony export */   "isBuiltInDirective": () => (/* binding */ isBuiltInDirective),
-/* harmony export */   "isDate": () => (/* binding */ isDate),
-/* harmony export */   "isFunction": () => (/* binding */ isFunction),
-/* harmony export */   "isGloballyWhitelisted": () => (/* binding */ isGloballyWhitelisted),
-/* harmony export */   "isHTMLTag": () => (/* binding */ isHTMLTag),
-/* harmony export */   "isIntegerKey": () => (/* binding */ isIntegerKey),
-/* harmony export */   "isKnownHtmlAttr": () => (/* binding */ isKnownHtmlAttr),
-/* harmony export */   "isKnownSvgAttr": () => (/* binding */ isKnownSvgAttr),
-/* harmony export */   "isMap": () => (/* binding */ isMap),
-/* harmony export */   "isModelListener": () => (/* binding */ isModelListener),
-/* harmony export */   "isNoUnitNumericStyleProp": () => (/* binding */ isNoUnitNumericStyleProp),
-/* harmony export */   "isObject": () => (/* binding */ isObject),
-/* harmony export */   "isOn": () => (/* binding */ isOn),
-/* harmony export */   "isPlainObject": () => (/* binding */ isPlainObject),
-/* harmony export */   "isPromise": () => (/* binding */ isPromise),
-/* harmony export */   "isReservedProp": () => (/* binding */ isReservedProp),
-/* harmony export */   "isSSRSafeAttrName": () => (/* binding */ isSSRSafeAttrName),
-/* harmony export */   "isSVGTag": () => (/* binding */ isSVGTag),
-/* harmony export */   "isSet": () => (/* binding */ isSet),
-/* harmony export */   "isSpecialBooleanAttr": () => (/* binding */ isSpecialBooleanAttr),
-/* harmony export */   "isString": () => (/* binding */ isString),
-/* harmony export */   "isSymbol": () => (/* binding */ isSymbol),
-/* harmony export */   "isVoidTag": () => (/* binding */ isVoidTag),
-/* harmony export */   "looseEqual": () => (/* binding */ looseEqual),
-/* harmony export */   "looseIndexOf": () => (/* binding */ looseIndexOf),
-/* harmony export */   "makeMap": () => (/* binding */ makeMap),
-/* harmony export */   "normalizeClass": () => (/* binding */ normalizeClass),
-/* harmony export */   "normalizeProps": () => (/* binding */ normalizeProps),
-/* harmony export */   "normalizeStyle": () => (/* binding */ normalizeStyle),
-/* harmony export */   "objectToString": () => (/* binding */ objectToString),
-/* harmony export */   "parseStringStyle": () => (/* binding */ parseStringStyle),
-/* harmony export */   "propsToAttrMap": () => (/* binding */ propsToAttrMap),
-/* harmony export */   "remove": () => (/* binding */ remove),
-/* harmony export */   "slotFlagsText": () => (/* binding */ slotFlagsText),
-/* harmony export */   "stringifyStyle": () => (/* binding */ stringifyStyle),
-/* harmony export */   "toDisplayString": () => (/* binding */ toDisplayString),
-/* harmony export */   "toHandlerKey": () => (/* binding */ toHandlerKey),
-/* harmony export */   "toNumber": () => (/* binding */ toNumber),
-/* harmony export */   "toRawType": () => (/* binding */ toRawType),
-/* harmony export */   "toTypeString": () => (/* binding */ toTypeString)
-/* harmony export */ });
-/**
- * Make a map and return a function for checking if a key
- * is in that map.
- * IMPORTANT: all calls of this function must be prefixed with
- * \/\*#\_\_PURE\_\_\*\/
- * So that rollup can tree-shake them if necessary.
- */
-function makeMap(str, expectsLowerCase) {
-    const map = Object.create(null);
-    const list = str.split(',');
-    for (let i = 0; i < list.length; i++) {
-        map[list[i]] = true;
-    }
-    return expectsLowerCase ? val => !!map[val.toLowerCase()] : val => !!map[val];
-}
-
-/**
- * dev only flag -> name mapping
- */
-const PatchFlagNames = {
-    [1 /* PatchFlags.TEXT */]: `TEXT`,
-    [2 /* PatchFlags.CLASS */]: `CLASS`,
-    [4 /* PatchFlags.STYLE */]: `STYLE`,
-    [8 /* PatchFlags.PROPS */]: `PROPS`,
-    [16 /* PatchFlags.FULL_PROPS */]: `FULL_PROPS`,
-    [32 /* PatchFlags.HYDRATE_EVENTS */]: `HYDRATE_EVENTS`,
-    [64 /* PatchFlags.STABLE_FRAGMENT */]: `STABLE_FRAGMENT`,
-    [128 /* PatchFlags.KEYED_FRAGMENT */]: `KEYED_FRAGMENT`,
-    [256 /* PatchFlags.UNKEYED_FRAGMENT */]: `UNKEYED_FRAGMENT`,
-    [512 /* PatchFlags.NEED_PATCH */]: `NEED_PATCH`,
-    [1024 /* PatchFlags.DYNAMIC_SLOTS */]: `DYNAMIC_SLOTS`,
-    [2048 /* PatchFlags.DEV_ROOT_FRAGMENT */]: `DEV_ROOT_FRAGMENT`,
-    [-1 /* PatchFlags.HOISTED */]: `HOISTED`,
-    [-2 /* PatchFlags.BAIL */]: `BAIL`
-};
-
-/**
- * Dev only
- */
-const slotFlagsText = {
-    [1 /* SlotFlags.STABLE */]: 'STABLE',
-    [2 /* SlotFlags.DYNAMIC */]: 'DYNAMIC',
-    [3 /* SlotFlags.FORWARDED */]: 'FORWARDED'
-};
-
-const GLOBALS_WHITE_LISTED = 'Infinity,undefined,NaN,isFinite,isNaN,parseFloat,parseInt,decodeURI,' +
-    'decodeURIComponent,encodeURI,encodeURIComponent,Math,Number,Date,Array,' +
-    'Object,Boolean,String,RegExp,Map,Set,JSON,Intl,BigInt';
-const isGloballyWhitelisted = /*#__PURE__*/ makeMap(GLOBALS_WHITE_LISTED);
-
-const range = 2;
-function generateCodeFrame(source, start = 0, end = source.length) {
-    // Split the content into individual lines but capture the newline sequence
-    // that separated each line. This is important because the actual sequence is
-    // needed to properly take into account the full line length for offset
-    // comparison
-    let lines = source.split(/(\r?\n)/);
-    // Separate the lines and newline sequences into separate arrays for easier referencing
-    const newlineSequences = lines.filter((_, idx) => idx % 2 === 1);
-    lines = lines.filter((_, idx) => idx % 2 === 0);
-    let count = 0;
-    const res = [];
-    for (let i = 0; i < lines.length; i++) {
-        count +=
-            lines[i].length +
-                ((newlineSequences[i] && newlineSequences[i].length) || 0);
-        if (count >= start) {
-            for (let j = i - range; j <= i + range || end > count; j++) {
-                if (j < 0 || j >= lines.length)
-                    continue;
-                const line = j + 1;
-                res.push(`${line}${' '.repeat(Math.max(3 - String(line).length, 0))}|  ${lines[j]}`);
-                const lineLength = lines[j].length;
-                const newLineSeqLength = (newlineSequences[j] && newlineSequences[j].length) || 0;
-                if (j === i) {
-                    // push underline
-                    const pad = start - (count - (lineLength + newLineSeqLength));
-                    const length = Math.max(1, end > count ? lineLength - pad : end - start);
-                    res.push(`   |  ` + ' '.repeat(pad) + '^'.repeat(length));
-                }
-                else if (j > i) {
-                    if (end > count) {
-                        const length = Math.max(Math.min(end - count, lineLength), 1);
-                        res.push(`   |  ` + '^'.repeat(length));
-                    }
-                    count += lineLength + newLineSeqLength;
-                }
-            }
-            break;
-        }
-    }
-    return res.join('\n');
-}
-
-/**
- * On the client we only need to offer special cases for boolean attributes that
- * have different names from their corresponding dom properties:
- * - itemscope -> N/A
- * - allowfullscreen -> allowFullscreen
- * - formnovalidate -> formNoValidate
- * - ismap -> isMap
- * - nomodule -> noModule
- * - novalidate -> noValidate
- * - readonly -> readOnly
- */
-const specialBooleanAttrs = `itemscope,allowfullscreen,formnovalidate,ismap,nomodule,novalidate,readonly`;
-const isSpecialBooleanAttr = /*#__PURE__*/ makeMap(specialBooleanAttrs);
-/**
- * The full list is needed during SSR to produce the correct initial markup.
- */
-const isBooleanAttr = /*#__PURE__*/ makeMap(specialBooleanAttrs +
-    `,async,autofocus,autoplay,controls,default,defer,disabled,hidden,` +
-    `loop,open,required,reversed,scoped,seamless,` +
-    `checked,muted,multiple,selected`);
-/**
- * Boolean attributes should be included if the value is truthy or ''.
- * e.g. `<select multiple>` compiles to `{ multiple: '' }`
- */
-function includeBooleanAttr(value) {
-    return !!value || value === '';
-}
-const unsafeAttrCharRE = /[>/="'\u0009\u000a\u000c\u0020]/;
-const attrValidationCache = {};
-function isSSRSafeAttrName(name) {
-    if (attrValidationCache.hasOwnProperty(name)) {
-        return attrValidationCache[name];
-    }
-    const isUnsafe = unsafeAttrCharRE.test(name);
-    if (isUnsafe) {
-        console.error(`unsafe attribute name: ${name}`);
-    }
-    return (attrValidationCache[name] = !isUnsafe);
-}
-const propsToAttrMap = {
-    acceptCharset: 'accept-charset',
-    className: 'class',
-    htmlFor: 'for',
-    httpEquiv: 'http-equiv'
-};
-/**
- * CSS properties that accept plain numbers
- */
-const isNoUnitNumericStyleProp = /*#__PURE__*/ makeMap(`animation-iteration-count,border-image-outset,border-image-slice,` +
-    `border-image-width,box-flex,box-flex-group,box-ordinal-group,column-count,` +
-    `columns,flex,flex-grow,flex-positive,flex-shrink,flex-negative,flex-order,` +
-    `grid-row,grid-row-end,grid-row-span,grid-row-start,grid-column,` +
-    `grid-column-end,grid-column-span,grid-column-start,font-weight,line-clamp,` +
-    `line-height,opacity,order,orphans,tab-size,widows,z-index,zoom,` +
-    // SVG
-    `fill-opacity,flood-opacity,stop-opacity,stroke-dasharray,stroke-dashoffset,` +
-    `stroke-miterlimit,stroke-opacity,stroke-width`);
-/**
- * Known attributes, this is used for stringification of runtime static nodes
- * so that we don't stringify bindings that cannot be set from HTML.
- * Don't also forget to allow `data-*` and `aria-*`!
- * Generated from https://developer.mozilla.org/en-US/docs/Web/HTML/Attributes
- */
-const isKnownHtmlAttr = /*#__PURE__*/ makeMap(`accept,accept-charset,accesskey,action,align,allow,alt,async,` +
-    `autocapitalize,autocomplete,autofocus,autoplay,background,bgcolor,` +
-    `border,buffered,capture,challenge,charset,checked,cite,class,code,` +
-    `codebase,color,cols,colspan,content,contenteditable,contextmenu,controls,` +
-    `coords,crossorigin,csp,data,datetime,decoding,default,defer,dir,dirname,` +
-    `disabled,download,draggable,dropzone,enctype,enterkeyhint,for,form,` +
-    `formaction,formenctype,formmethod,formnovalidate,formtarget,headers,` +
-    `height,hidden,high,href,hreflang,http-equiv,icon,id,importance,integrity,` +
-    `ismap,itemprop,keytype,kind,label,lang,language,loading,list,loop,low,` +
-    `manifest,max,maxlength,minlength,media,min,multiple,muted,name,novalidate,` +
-    `open,optimum,pattern,ping,placeholder,poster,preload,radiogroup,readonly,` +
-    `referrerpolicy,rel,required,reversed,rows,rowspan,sandbox,scope,scoped,` +
-    `selected,shape,size,sizes,slot,span,spellcheck,src,srcdoc,srclang,srcset,` +
-    `start,step,style,summary,tabindex,target,title,translate,type,usemap,` +
-    `value,width,wrap`);
-/**
- * Generated from https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute
- */
-const isKnownSvgAttr = /*#__PURE__*/ makeMap(`xmlns,accent-height,accumulate,additive,alignment-baseline,alphabetic,amplitude,` +
-    `arabic-form,ascent,attributeName,attributeType,azimuth,baseFrequency,` +
-    `baseline-shift,baseProfile,bbox,begin,bias,by,calcMode,cap-height,class,` +
-    `clip,clipPathUnits,clip-path,clip-rule,color,color-interpolation,` +
-    `color-interpolation-filters,color-profile,color-rendering,` +
-    `contentScriptType,contentStyleType,crossorigin,cursor,cx,cy,d,decelerate,` +
-    `descent,diffuseConstant,direction,display,divisor,dominant-baseline,dur,dx,` +
-    `dy,edgeMode,elevation,enable-background,end,exponent,fill,fill-opacity,` +
-    `fill-rule,filter,filterRes,filterUnits,flood-color,flood-opacity,` +
-    `font-family,font-size,font-size-adjust,font-stretch,font-style,` +
-    `font-variant,font-weight,format,from,fr,fx,fy,g1,g2,glyph-name,` +
-    `glyph-orientation-horizontal,glyph-orientation-vertical,glyphRef,` +
-    `gradientTransform,gradientUnits,hanging,height,href,hreflang,horiz-adv-x,` +
-    `horiz-origin-x,id,ideographic,image-rendering,in,in2,intercept,k,k1,k2,k3,` +
-    `k4,kernelMatrix,kernelUnitLength,kerning,keyPoints,keySplines,keyTimes,` +
-    `lang,lengthAdjust,letter-spacing,lighting-color,limitingConeAngle,local,` +
-    `marker-end,marker-mid,marker-start,markerHeight,markerUnits,markerWidth,` +
-    `mask,maskContentUnits,maskUnits,mathematical,max,media,method,min,mode,` +
-    `name,numOctaves,offset,opacity,operator,order,orient,orientation,origin,` +
-    `overflow,overline-position,overline-thickness,panose-1,paint-order,path,` +
-    `pathLength,patternContentUnits,patternTransform,patternUnits,ping,` +
-    `pointer-events,points,pointsAtX,pointsAtY,pointsAtZ,preserveAlpha,` +
-    `preserveAspectRatio,primitiveUnits,r,radius,referrerPolicy,refX,refY,rel,` +
-    `rendering-intent,repeatCount,repeatDur,requiredExtensions,requiredFeatures,` +
-    `restart,result,rotate,rx,ry,scale,seed,shape-rendering,slope,spacing,` +
-    `specularConstant,specularExponent,speed,spreadMethod,startOffset,` +
-    `stdDeviation,stemh,stemv,stitchTiles,stop-color,stop-opacity,` +
-    `strikethrough-position,strikethrough-thickness,string,stroke,` +
-    `stroke-dasharray,stroke-dashoffset,stroke-linecap,stroke-linejoin,` +
-    `stroke-miterlimit,stroke-opacity,stroke-width,style,surfaceScale,` +
-    `systemLanguage,tabindex,tableValues,target,targetX,targetY,text-anchor,` +
-    `text-decoration,text-rendering,textLength,to,transform,transform-origin,` +
-    `type,u1,u2,underline-position,underline-thickness,unicode,unicode-bidi,` +
-    `unicode-range,units-per-em,v-alphabetic,v-hanging,v-ideographic,` +
-    `v-mathematical,values,vector-effect,version,vert-adv-y,vert-origin-x,` +
-    `vert-origin-y,viewBox,viewTarget,visibility,width,widths,word-spacing,` +
-    `writing-mode,x,x-height,x1,x2,xChannelSelector,xlink:actuate,xlink:arcrole,` +
-    `xlink:href,xlink:role,xlink:show,xlink:title,xlink:type,xml:base,xml:lang,` +
-    `xml:space,y,y1,y2,yChannelSelector,z,zoomAndPan`);
-
-function normalizeStyle(value) {
-    if (isArray(value)) {
-        const res = {};
-        for (let i = 0; i < value.length; i++) {
-            const item = value[i];
-            const normalized = isString(item)
-                ? parseStringStyle(item)
-                : normalizeStyle(item);
-            if (normalized) {
-                for (const key in normalized) {
-                    res[key] = normalized[key];
-                }
-            }
-        }
-        return res;
-    }
-    else if (isString(value)) {
-        return value;
-    }
-    else if (isObject(value)) {
-        return value;
-    }
-}
-const listDelimiterRE = /;(?![^(]*\))/g;
-const propertyDelimiterRE = /:(.+)/;
-function parseStringStyle(cssText) {
-    const ret = {};
-    cssText.split(listDelimiterRE).forEach(item => {
-        if (item) {
-            const tmp = item.split(propertyDelimiterRE);
-            tmp.length > 1 && (ret[tmp[0].trim()] = tmp[1].trim());
-        }
-    });
-    return ret;
-}
-function stringifyStyle(styles) {
-    let ret = '';
-    if (!styles || isString(styles)) {
-        return ret;
-    }
-    for (const key in styles) {
-        const value = styles[key];
-        const normalizedKey = key.startsWith(`--`) ? key : hyphenate(key);
-        if (isString(value) ||
-            (typeof value === 'number' && isNoUnitNumericStyleProp(normalizedKey))) {
-            // only render valid values
-            ret += `${normalizedKey}:${value};`;
-        }
-    }
-    return ret;
-}
-function normalizeClass(value) {
-    let res = '';
-    if (isString(value)) {
-        res = value;
-    }
-    else if (isArray(value)) {
-        for (let i = 0; i < value.length; i++) {
-            const normalized = normalizeClass(value[i]);
-            if (normalized) {
-                res += normalized + ' ';
-            }
-        }
-    }
-    else if (isObject(value)) {
-        for (const name in value) {
-            if (value[name]) {
-                res += name + ' ';
-            }
-        }
-    }
-    return res.trim();
-}
-function normalizeProps(props) {
-    if (!props)
-        return null;
-    let { class: klass, style } = props;
-    if (klass && !isString(klass)) {
-        props.class = normalizeClass(klass);
-    }
-    if (style) {
-        props.style = normalizeStyle(style);
-    }
-    return props;
-}
-
-// These tag configs are shared between compiler-dom and runtime-dom, so they
-// https://developer.mozilla.org/en-US/docs/Web/HTML/Element
-const HTML_TAGS = 'html,body,base,head,link,meta,style,title,address,article,aside,footer,' +
-    'header,h1,h2,h3,h4,h5,h6,nav,section,div,dd,dl,dt,figcaption,' +
-    'figure,picture,hr,img,li,main,ol,p,pre,ul,a,b,abbr,bdi,bdo,br,cite,code,' +
-    'data,dfn,em,i,kbd,mark,q,rp,rt,ruby,s,samp,small,span,strong,sub,sup,' +
-    'time,u,var,wbr,area,audio,map,track,video,embed,object,param,source,' +
-    'canvas,script,noscript,del,ins,caption,col,colgroup,table,thead,tbody,td,' +
-    'th,tr,button,datalist,fieldset,form,input,label,legend,meter,optgroup,' +
-    'option,output,progress,select,textarea,details,dialog,menu,' +
-    'summary,template,blockquote,iframe,tfoot';
-// https://developer.mozilla.org/en-US/docs/Web/SVG/Element
-const SVG_TAGS = 'svg,animate,animateMotion,animateTransform,circle,clipPath,color-profile,' +
-    'defs,desc,discard,ellipse,feBlend,feColorMatrix,feComponentTransfer,' +
-    'feComposite,feConvolveMatrix,feDiffuseLighting,feDisplacementMap,' +
-    'feDistanceLight,feDropShadow,feFlood,feFuncA,feFuncB,feFuncG,feFuncR,' +
-    'feGaussianBlur,feImage,feMerge,feMergeNode,feMorphology,feOffset,' +
-    'fePointLight,feSpecularLighting,feSpotLight,feTile,feTurbulence,filter,' +
-    'foreignObject,g,hatch,hatchpath,image,line,linearGradient,marker,mask,' +
-    'mesh,meshgradient,meshpatch,meshrow,metadata,mpath,path,pattern,' +
-    'polygon,polyline,radialGradient,rect,set,solidcolor,stop,switch,symbol,' +
-    'text,textPath,title,tspan,unknown,use,view';
-const VOID_TAGS = 'area,base,br,col,embed,hr,img,input,link,meta,param,source,track,wbr';
-/**
- * Compiler only.
- * Do NOT use in runtime code paths unless behind `(process.env.NODE_ENV !== 'production')` flag.
- */
-const isHTMLTag = /*#__PURE__*/ makeMap(HTML_TAGS);
-/**
- * Compiler only.
- * Do NOT use in runtime code paths unless behind `(process.env.NODE_ENV !== 'production')` flag.
- */
-const isSVGTag = /*#__PURE__*/ makeMap(SVG_TAGS);
-/**
- * Compiler only.
- * Do NOT use in runtime code paths unless behind `(process.env.NODE_ENV !== 'production')` flag.
- */
-const isVoidTag = /*#__PURE__*/ makeMap(VOID_TAGS);
-
-const escapeRE = /["'&<>]/;
-function escapeHtml(string) {
-    const str = '' + string;
-    const match = escapeRE.exec(str);
-    if (!match) {
-        return str;
-    }
-    let html = '';
-    let escaped;
-    let index;
-    let lastIndex = 0;
-    for (index = match.index; index < str.length; index++) {
-        switch (str.charCodeAt(index)) {
-            case 34: // "
-                escaped = '&quot;';
-                break;
-            case 38: // &
-                escaped = '&amp;';
-                break;
-            case 39: // '
-                escaped = '&#39;';
-                break;
-            case 60: // <
-                escaped = '&lt;';
-                break;
-            case 62: // >
-                escaped = '&gt;';
-                break;
-            default:
-                continue;
-        }
-        if (lastIndex !== index) {
-            html += str.slice(lastIndex, index);
-        }
-        lastIndex = index + 1;
-        html += escaped;
-    }
-    return lastIndex !== index ? html + str.slice(lastIndex, index) : html;
-}
-// https://www.w3.org/TR/html52/syntax.html#comments
-const commentStripRE = /^-?>|<!--|-->|--!>|<!-$/g;
-function escapeHtmlComment(src) {
-    return src.replace(commentStripRE, '');
-}
-
-function looseCompareArrays(a, b) {
-    if (a.length !== b.length)
-        return false;
-    let equal = true;
-    for (let i = 0; equal && i < a.length; i++) {
-        equal = looseEqual(a[i], b[i]);
-    }
-    return equal;
-}
-function looseEqual(a, b) {
-    if (a === b)
-        return true;
-    let aValidType = isDate(a);
-    let bValidType = isDate(b);
-    if (aValidType || bValidType) {
-        return aValidType && bValidType ? a.getTime() === b.getTime() : false;
-    }
-    aValidType = isSymbol(a);
-    bValidType = isSymbol(b);
-    if (aValidType || bValidType) {
-        return a === b;
-    }
-    aValidType = isArray(a);
-    bValidType = isArray(b);
-    if (aValidType || bValidType) {
-        return aValidType && bValidType ? looseCompareArrays(a, b) : false;
-    }
-    aValidType = isObject(a);
-    bValidType = isObject(b);
-    if (aValidType || bValidType) {
-        /* istanbul ignore if: this if will probably never be called */
-        if (!aValidType || !bValidType) {
-            return false;
-        }
-        const aKeysCount = Object.keys(a).length;
-        const bKeysCount = Object.keys(b).length;
-        if (aKeysCount !== bKeysCount) {
-            return false;
-        }
-        for (const key in a) {
-            const aHasKey = a.hasOwnProperty(key);
-            const bHasKey = b.hasOwnProperty(key);
-            if ((aHasKey && !bHasKey) ||
-                (!aHasKey && bHasKey) ||
-                !looseEqual(a[key], b[key])) {
-                return false;
-            }
-        }
-    }
-    return String(a) === String(b);
-}
-function looseIndexOf(arr, val) {
-    return arr.findIndex(item => looseEqual(item, val));
-}
-
-/**
- * For converting {{ interpolation }} values to displayed strings.
- * @private
- */
-const toDisplayString = (val) => {
-    return isString(val)
-        ? val
-        : val == null
-            ? ''
-            : isArray(val) ||
-                (isObject(val) &&
-                    (val.toString === objectToString || !isFunction(val.toString)))
-                ? JSON.stringify(val, replacer, 2)
-                : String(val);
-};
-const replacer = (_key, val) => {
-    // can't use isRef here since @vue/shared has no deps
-    if (val && val.__v_isRef) {
-        return replacer(_key, val.value);
-    }
-    else if (isMap(val)) {
-        return {
-            [`Map(${val.size})`]: [...val.entries()].reduce((entries, [key, val]) => {
-                entries[`${key} =>`] = val;
-                return entries;
-            }, {})
-        };
-    }
-    else if (isSet(val)) {
-        return {
-            [`Set(${val.size})`]: [...val.values()]
-        };
-    }
-    else if (isObject(val) && !isArray(val) && !isPlainObject(val)) {
-        return String(val);
-    }
-    return val;
-};
-
-const EMPTY_OBJ = ( true)
-    ? Object.freeze({})
-    : 0;
-const EMPTY_ARR = ( true) ? Object.freeze([]) : 0;
-const NOOP = () => { };
-/**
- * Always return false.
- */
-const NO = () => false;
-const onRE = /^on[^a-z]/;
-const isOn = (key) => onRE.test(key);
-const isModelListener = (key) => key.startsWith('onUpdate:');
-const extend = Object.assign;
-const remove = (arr, el) => {
-    const i = arr.indexOf(el);
-    if (i > -1) {
-        arr.splice(i, 1);
-    }
-};
-const hasOwnProperty = Object.prototype.hasOwnProperty;
-const hasOwn = (val, key) => hasOwnProperty.call(val, key);
-const isArray = Array.isArray;
-const isMap = (val) => toTypeString(val) === '[object Map]';
-const isSet = (val) => toTypeString(val) === '[object Set]';
-const isDate = (val) => toTypeString(val) === '[object Date]';
-const isFunction = (val) => typeof val === 'function';
-const isString = (val) => typeof val === 'string';
-const isSymbol = (val) => typeof val === 'symbol';
-const isObject = (val) => val !== null && typeof val === 'object';
-const isPromise = (val) => {
-    return isObject(val) && isFunction(val.then) && isFunction(val.catch);
-};
-const objectToString = Object.prototype.toString;
-const toTypeString = (value) => objectToString.call(value);
-const toRawType = (value) => {
-    // extract "RawType" from strings like "[object RawType]"
-    return toTypeString(value).slice(8, -1);
-};
-const isPlainObject = (val) => toTypeString(val) === '[object Object]';
-const isIntegerKey = (key) => isString(key) &&
-    key !== 'NaN' &&
-    key[0] !== '-' &&
-    '' + parseInt(key, 10) === key;
-const isReservedProp = /*#__PURE__*/ makeMap(
-// the leading comma is intentional so empty string "" is also included
-',key,ref,ref_for,ref_key,' +
-    'onVnodeBeforeMount,onVnodeMounted,' +
-    'onVnodeBeforeUpdate,onVnodeUpdated,' +
-    'onVnodeBeforeUnmount,onVnodeUnmounted');
-const isBuiltInDirective = /*#__PURE__*/ makeMap('bind,cloak,else-if,else,for,html,if,model,on,once,pre,show,slot,text,memo');
-const cacheStringFunction = (fn) => {
-    const cache = Object.create(null);
-    return ((str) => {
-        const hit = cache[str];
-        return hit || (cache[str] = fn(str));
-    });
-};
-const camelizeRE = /-(\w)/g;
-/**
- * @private
- */
-const camelize = cacheStringFunction((str) => {
-    return str.replace(camelizeRE, (_, c) => (c ? c.toUpperCase() : ''));
-});
-const hyphenateRE = /\B([A-Z])/g;
-/**
- * @private
- */
-const hyphenate = cacheStringFunction((str) => str.replace(hyphenateRE, '-$1').toLowerCase());
-/**
- * @private
- */
-const capitalize = cacheStringFunction((str) => str.charAt(0).toUpperCase() + str.slice(1));
-/**
- * @private
- */
-const toHandlerKey = cacheStringFunction((str) => str ? `on${capitalize(str)}` : ``);
-// compare whether a value has changed, accounting for NaN.
-const hasChanged = (value, oldValue) => !Object.is(value, oldValue);
-const invokeArrayFns = (fns, arg) => {
-    for (let i = 0; i < fns.length; i++) {
-        fns[i](arg);
-    }
-};
-const def = (obj, key, value) => {
-    Object.defineProperty(obj, key, {
-        configurable: true,
-        enumerable: false,
-        value
-    });
-};
-const toNumber = (val) => {
-    const n = parseFloat(val);
-    return isNaN(n) ? val : n;
-};
-let _globalThis;
-const getGlobalThis = () => {
-    return (_globalThis ||
-        (_globalThis =
-            typeof globalThis !== 'undefined'
-                ? globalThis
-                : typeof self !== 'undefined'
-                    ? self
-                    : typeof window !== 'undefined'
-                        ? window
-                        : typeof __webpack_require__.g !== 'undefined'
-                            ? __webpack_require__.g
-                            : {}));
-};
-const identRE = /^[_$a-zA-Z\xA0-\uFFFF][_$a-zA-Z0-9\xA0-\uFFFF]*$/;
-function genPropsAccessExp(name) {
-    return identRE.test(name)
-        ? `__props.${name}`
-        : `__props[${JSON.stringify(name)}]`;
-}
-
-
-
-
-/***/ }),
-
 /***/ "./node_modules/@vue/runtime-core/dist/runtime-core.esm-bundler.js":
 /*!*************************************************************************!*\
   !*** ./node_modules/@vue/runtime-core/dist/runtime-core.esm-bundler.js ***!
@@ -7027,6 +5723,7 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony export */   "Suspense": () => (/* binding */ Suspense),
 /* harmony export */   "Teleport": () => (/* binding */ Teleport),
 /* harmony export */   "Text": () => (/* binding */ Text),
+/* harmony export */   "assertNumber": () => (/* binding */ assertNumber),
 /* harmony export */   "callWithAsyncErrorHandling": () => (/* binding */ callWithAsyncErrorHandling),
 /* harmony export */   "callWithErrorHandling": () => (/* binding */ callWithErrorHandling),
 /* harmony export */   "camelize": () => (/* reexport safe */ _vue_shared__WEBPACK_IMPORTED_MODULE_1__.camelize),
@@ -7143,7 +5840,7 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony export */   "withScopeId": () => (/* binding */ withScopeId)
 /* harmony export */ });
 /* harmony import */ var _vue_reactivity__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! @vue/reactivity */ "./node_modules/@vue/runtime-core/node_modules/@vue/reactivity/dist/reactivity.esm-bundler.js");
-/* harmony import */ var _vue_shared__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! @vue/shared */ "./node_modules/@vue/runtime-core/node_modules/@vue/shared/dist/shared.esm-bundler.js");
+/* harmony import */ var _vue_shared__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! @vue/shared */ "./node_modules/@vue/shared/dist/shared.esm-bundler.js");
 
 
 
@@ -7157,6 +5854,8 @@ function popWarningContext() {
     stack.pop();
 }
 function warn(msg, ...args) {
+    if (false)
+        {}
     // avoid props formatting or warn handler tracking deps that might be mutated
     // during patch, leading to infinite recursion.
     (0,_vue_reactivity__WEBPACK_IMPORTED_MODULE_0__.pauseTracking)();
@@ -7260,6 +5959,22 @@ function formatProp(key, value, raw) {
     else {
         value = (0,_vue_reactivity__WEBPACK_IMPORTED_MODULE_0__.toRaw)(value);
         return raw ? value : [`${key}=`, value];
+    }
+}
+/**
+ * @internal
+ */
+function assertNumber(val, type) {
+    if (false)
+        {}
+    if (val === undefined) {
+        return;
+    }
+    else if (typeof val !== 'number') {
+        warn(`${type} is not a valid number - ` + `got ${JSON.stringify(val)}.`);
+    }
+    else if (isNaN(val)) {
+        warn(`${type} is NaN - ` + 'the duration expression might be incorrect.');
     }
 }
 
@@ -7661,12 +6376,6 @@ function reload(id, newComp) {
             // components to be unmounted and re-mounted. Queue the update so that we
             // don't end up forcing the same parent to re-render multiple times.
             queueJob(instance.parent.update);
-            // instance is the inner component of an async custom element
-            // invoke to reset styles
-            if (instance.parent.type.__asyncLoader &&
-                instance.parent.ceReload) {
-                instance.parent.ceReload(newComp.styles);
-            }
         }
         else if (instance.appContext.reload) {
             // root instance mounted via createApp() has a reload method
@@ -7711,7 +6420,7 @@ function tryWrap(fn) {
 let devtools;
 let buffer = [];
 let devtoolsNotInstalled = false;
-function emit(event, ...args) {
+function emit$1(event, ...args) {
     if (devtools) {
         devtools.emit(event, ...args);
     }
@@ -7758,7 +6467,7 @@ function setDevtoolsHook(hook, target) {
     }
 }
 function devtoolsInitApp(app, version) {
-    emit("app:init" /* DevtoolsHooks.APP_INIT */, app, version, {
+    emit$1("app:init" /* DevtoolsHooks.APP_INIT */, app, version, {
         Fragment,
         Text,
         Comment,
@@ -7766,7 +6475,7 @@ function devtoolsInitApp(app, version) {
     });
 }
 function devtoolsUnmountApp(app) {
-    emit("app:unmount" /* DevtoolsHooks.APP_UNMOUNT */, app);
+    emit$1("app:unmount" /* DevtoolsHooks.APP_UNMOUNT */, app);
 }
 const devtoolsComponentAdded = /*#__PURE__*/ createDevtoolsComponentHook("component:added" /* DevtoolsHooks.COMPONENT_ADDED */);
 const devtoolsComponentUpdated = 
@@ -7782,21 +6491,21 @@ const devtoolsComponentRemoved = (component) => {
 };
 function createDevtoolsComponentHook(hook) {
     return (component) => {
-        emit(hook, component.appContext.app, component.uid, component.parent ? component.parent.uid : undefined, component);
+        emit$1(hook, component.appContext.app, component.uid, component.parent ? component.parent.uid : undefined, component);
     };
 }
 const devtoolsPerfStart = /*#__PURE__*/ createDevtoolsPerformanceHook("perf:start" /* DevtoolsHooks.PERFORMANCE_START */);
 const devtoolsPerfEnd = /*#__PURE__*/ createDevtoolsPerformanceHook("perf:end" /* DevtoolsHooks.PERFORMANCE_END */);
 function createDevtoolsPerformanceHook(hook) {
     return (component, type, time) => {
-        emit(hook, component.appContext.app, component.uid, component, type, time);
+        emit$1(hook, component.appContext.app, component.uid, component, type, time);
     };
 }
 function devtoolsComponentEmit(component, event, params) {
-    emit("component:emit" /* DevtoolsHooks.COMPONENT_EMIT */, component.appContext.app, component, event, params);
+    emit$1("component:emit" /* DevtoolsHooks.COMPONENT_EMIT */, component.appContext.app, component, event, params);
 }
 
-function emit$1(instance, event, ...rawArgs) {
+function emit(instance, event, ...rawArgs) {
     if (instance.isUnmounted)
         return;
     const props = instance.vnode.props || _vue_shared__WEBPACK_IMPORTED_MODULE_1__.EMPTY_OBJ;
@@ -7829,10 +6538,10 @@ function emit$1(instance, event, ...rawArgs) {
         const modifiersKey = `${modelArg === 'modelValue' ? 'model' : modelArg}Modifiers`;
         const { number, trim } = props[modifiersKey] || _vue_shared__WEBPACK_IMPORTED_MODULE_1__.EMPTY_OBJ;
         if (trim) {
-            args = rawArgs.map(a => a.trim());
+            args = rawArgs.map(a => ((0,_vue_shared__WEBPACK_IMPORTED_MODULE_1__.isString)(a) ? a.trim() : a));
         }
         if (number) {
-            args = rawArgs.map(_vue_shared__WEBPACK_IMPORTED_MODULE_1__.toNumber);
+            args = rawArgs.map(_vue_shared__WEBPACK_IMPORTED_MODULE_1__.looseToNumber);
         }
     }
     if (true) {
@@ -8481,7 +7190,10 @@ function createSuspenseBoundary(vnode, parent, parentComponent, container, hidde
         console[console.info ? 'info' : 'log'](`<Suspense> is an experimental feature and its API will likely change.`);
     }
     const { p: patch, m: move, um: unmount, n: next, o: { parentNode, remove } } = rendererInternals;
-    const timeout = (0,_vue_shared__WEBPACK_IMPORTED_MODULE_1__.toNumber)(vnode.props && vnode.props.timeout);
+    const timeout = vnode.props ? (0,_vue_shared__WEBPACK_IMPORTED_MODULE_1__.toNumber)(vnode.props.timeout) : undefined;
+    if ((true)) {
+        assertNumber(timeout, `Suspense timeout`);
+    }
     const suspense = {
         vnode,
         parent,
@@ -8799,12 +7511,10 @@ function watchEffect(effect, options) {
     return doWatch(effect, null, options);
 }
 function watchPostEffect(effect, options) {
-    return doWatch(effect, null, (( true)
-        ? Object.assign(Object.assign({}, options), { flush: 'post' }) : 0));
+    return doWatch(effect, null, ( true) ? Object.assign(Object.assign({}, options), { flush: 'post' }) : 0);
 }
 function watchSyncEffect(effect, options) {
-    return doWatch(effect, null, (( true)
-        ? Object.assign(Object.assign({}, options), { flush: 'sync' }) : 0));
+    return doWatch(effect, null, ( true) ? Object.assign(Object.assign({}, options), { flush: 'sync' }) : 0);
 }
 // initial value for watchers to trigger on undefined initial values
 const INITIAL_WATCHER_VALUE = {};
@@ -8832,7 +7542,8 @@ function doWatch(source, cb, { immediate, deep, flush, onTrack, onTrigger } = _v
         warn(`Invalid watch source: `, s, `A watch source can only be a getter/effect function, a ref, ` +
             `a reactive object, or an array of these types.`);
     };
-    const instance = currentInstance;
+    const instance = (0,_vue_reactivity__WEBPACK_IMPORTED_MODULE_0__.getCurrentScope)() === (currentInstance === null || currentInstance === void 0 ? void 0 : currentInstance.scope) ? currentInstance : null;
+    // const instance = currentInstance
     let getter;
     let forceTrigger = false;
     let isMultiSource = false;
@@ -8895,7 +7606,8 @@ function doWatch(source, cb, { immediate, deep, flush, onTrack, onTrigger } = _v
         };
     };
     // in SSR there is no need to setup an actual effect, and it should be noop
-    // unless it's eager
+    // unless it's eager or sync flush
+    let ssrCleanup;
     if (isInSSRComponentSetup) {
         // we will also not call the invalidate callback (+ runner is not set up)
         onCleanup = _vue_shared__WEBPACK_IMPORTED_MODULE_1__.NOOP;
@@ -8909,9 +7621,17 @@ function doWatch(source, cb, { immediate, deep, flush, onTrack, onTrigger } = _v
                 onCleanup
             ]);
         }
-        return _vue_shared__WEBPACK_IMPORTED_MODULE_1__.NOOP;
+        if (flush === 'sync') {
+            const ctx = useSSRContext();
+            ssrCleanup = ctx.__watcherHandles || (ctx.__watcherHandles = []);
+        }
+        else {
+            return _vue_shared__WEBPACK_IMPORTED_MODULE_1__.NOOP;
+        }
     }
-    let oldValue = isMultiSource ? [] : INITIAL_WATCHER_VALUE;
+    let oldValue = isMultiSource
+        ? new Array(source.length).fill(INITIAL_WATCHER_VALUE)
+        : INITIAL_WATCHER_VALUE;
     const job = () => {
         if (!effect.active) {
             return;
@@ -8932,7 +7652,11 @@ function doWatch(source, cb, { immediate, deep, flush, onTrack, onTrigger } = _v
                 callWithAsyncErrorHandling(cb, instance, 3 /* ErrorCodes.WATCH_CALLBACK */, [
                     newValue,
                     // pass undefined as the old value when it's changed for the first time
-                    oldValue === INITIAL_WATCHER_VALUE ? undefined : oldValue,
+                    oldValue === INITIAL_WATCHER_VALUE
+                        ? undefined
+                        : isMultiSource && oldValue[0] === INITIAL_WATCHER_VALUE
+                            ? []
+                            : oldValue,
                     onCleanup
                 ]);
                 oldValue = newValue;
@@ -8980,12 +7704,15 @@ function doWatch(source, cb, { immediate, deep, flush, onTrack, onTrigger } = _v
     else {
         effect.run();
     }
-    return () => {
+    const unwatch = () => {
         effect.stop();
         if (instance && instance.scope) {
             (0,_vue_shared__WEBPACK_IMPORTED_MODULE_1__.remove)(instance.scope.effects, effect);
         }
     };
+    if (ssrCleanup)
+        ssrCleanup.push(unwatch);
+    return unwatch;
 }
 // this.$watch
 function instanceWatch(source, value, options) {
@@ -9170,7 +7897,11 @@ const BaseTransitionImpl = {
                     // return placeholder node and queue update when leave finishes
                     leavingHooks.afterLeave = () => {
                         state.isLeaving = false;
-                        instance.update();
+                        // #6835
+                        // it also needs to be updated when active is undefined
+                        if (instance.update.active !== false) {
+                            instance.update();
+                        }
                     };
                     return emptyPlaceholder(child);
                 }
@@ -9527,10 +8258,15 @@ function defineAsyncComponent(source) {
         }
     });
 }
-function createInnerComp(comp, { vnode: { ref, props, children, shapeFlag }, parent }) {
+function createInnerComp(comp, parent) {
+    const { ref, props, children, ce } = parent.vnode;
     const vnode = createVNode(comp, props, children);
     // ensure inner component inherits the async wrapper's ref owner
     vnode.ref = ref;
+    // pass the custom element callback on to the inner comp
+    // and remove it from the async wrapper
+    vnode.ce = ce;
+    delete parent.vnode.ce;
     return vnode;
 }
 
@@ -9624,7 +8360,7 @@ const KeepAliveImpl = {
         }
         function pruneCacheEntry(key) {
             const cached = cache.get(key);
-            if (!current || cached.type !== current.type) {
+            if (!current || !isSameVNodeType(cached, current)) {
                 unmount(cached);
             }
             else if (current) {
@@ -9656,7 +8392,7 @@ const KeepAliveImpl = {
             cache.forEach(cached => {
                 const { subTree, suspense } = instance;
                 const vnode = getInnerChild(subTree);
-                if (cached.type === vnode.type) {
+                if (cached.type === vnode.type && cached.key === vnode.key) {
                     // current instance will be unmounted as part of keep-alive's unmount
                     resetShapeFlag(vnode);
                     // but invoke its deactivated hook here
@@ -9753,7 +8489,7 @@ function matches(pattern, name) {
     else if ((0,_vue_shared__WEBPACK_IMPORTED_MODULE_1__.isString)(pattern)) {
         return pattern.split(',').includes(name);
     }
-    else if (pattern.test) {
+    else if ((0,_vue_shared__WEBPACK_IMPORTED_MODULE_1__.isRegExp)(pattern)) {
         return pattern.test(name);
     }
     /* istanbul ignore next */
@@ -9806,14 +8542,9 @@ function injectToKeepAliveRoot(hook, type, target, keepAliveRoot) {
     }, target);
 }
 function resetShapeFlag(vnode) {
-    let shapeFlag = vnode.shapeFlag;
-    if (shapeFlag & 256 /* ShapeFlags.COMPONENT_SHOULD_KEEP_ALIVE */) {
-        shapeFlag -= 256 /* ShapeFlags.COMPONENT_SHOULD_KEEP_ALIVE */;
-    }
-    if (shapeFlag & 512 /* ShapeFlags.COMPONENT_KEPT_ALIVE */) {
-        shapeFlag -= 512 /* ShapeFlags.COMPONENT_KEPT_ALIVE */;
-    }
-    vnode.shapeFlag = shapeFlag;
+    // bitwise operations to remove keep alive flags
+    vnode.shapeFlag &= ~256 /* ShapeFlags.COMPONENT_SHOULD_KEEP_ALIVE */;
+    vnode.shapeFlag &= ~512 /* ShapeFlags.COMPONENT_KEPT_ALIVE */;
 }
 function getInnerChild(vnode) {
     return vnode.shapeFlag & 128 /* ShapeFlags.SUSPENSE */ ? vnode.ssContent : vnode;
@@ -9908,23 +8639,25 @@ function withDirectives(vnode, directives) {
     const bindings = vnode.dirs || (vnode.dirs = []);
     for (let i = 0; i < directives.length; i++) {
         let [dir, value, arg, modifiers = _vue_shared__WEBPACK_IMPORTED_MODULE_1__.EMPTY_OBJ] = directives[i];
-        if ((0,_vue_shared__WEBPACK_IMPORTED_MODULE_1__.isFunction)(dir)) {
-            dir = {
-                mounted: dir,
-                updated: dir
-            };
+        if (dir) {
+            if ((0,_vue_shared__WEBPACK_IMPORTED_MODULE_1__.isFunction)(dir)) {
+                dir = {
+                    mounted: dir,
+                    updated: dir
+                };
+            }
+            if (dir.deep) {
+                traverse(value);
+            }
+            bindings.push({
+                dir,
+                instance,
+                value,
+                oldValue: void 0,
+                arg,
+                modifiers
+            });
         }
-        if (dir.deep) {
-            traverse(value);
-        }
-        bindings.push({
-            dir,
-            instance,
-            value,
-            oldValue: void 0,
-            arg,
-            modifiers
-        });
     }
     return vnode;
 }
@@ -10110,7 +8843,9 @@ fallback, noSlotted) {
         (currentRenderingInstance.parent &&
             isAsyncWrapper(currentRenderingInstance.parent) &&
             currentRenderingInstance.parent.isCE)) {
-        return createVNode('slot', name === 'default' ? null : { name }, fallback && fallback());
+        if (name !== 'default')
+            props.name = name;
+        return createVNode('slot', props, fallback && fallback());
     }
     let slot = slots[name];
     if (( true) && slot && slot.length > 1) {
@@ -10210,22 +8945,13 @@ const publicPropertiesMap =
     $watch: i => ( true ? instanceWatch.bind(i) : 0)
 });
 const isReservedPrefix = (key) => key === '_' || key === '$';
+const hasSetupBinding = (state, key) => state !== _vue_shared__WEBPACK_IMPORTED_MODULE_1__.EMPTY_OBJ && !state.__isScriptSetup && (0,_vue_shared__WEBPACK_IMPORTED_MODULE_1__.hasOwn)(state, key);
 const PublicInstanceProxyHandlers = {
     get({ _: instance }, key) {
         const { ctx, setupState, data, props, accessCache, type, appContext } = instance;
         // for internal formatters to know that this is a Vue instance
         if (( true) && key === '__isVue') {
             return true;
-        }
-        // prioritize <script setup> bindings during dev.
-        // this allows even properties that start with _ or $ to be used - so that
-        // it aligns with the production behavior where the render fn is inlined and
-        // indeed has access to all declared variables.
-        if (( true) &&
-            setupState !== _vue_shared__WEBPACK_IMPORTED_MODULE_1__.EMPTY_OBJ &&
-            setupState.__isScriptSetup &&
-            (0,_vue_shared__WEBPACK_IMPORTED_MODULE_1__.hasOwn)(setupState, key)) {
-            return setupState[key];
         }
         // data / props / ctx
         // This getter gets called for every property access on the render context
@@ -10249,7 +8975,7 @@ const PublicInstanceProxyHandlers = {
                     // default: just fallthrough
                 }
             }
-            else if (setupState !== _vue_shared__WEBPACK_IMPORTED_MODULE_1__.EMPTY_OBJ && (0,_vue_shared__WEBPACK_IMPORTED_MODULE_1__.hasOwn)(setupState, key)) {
+            else if (hasSetupBinding(setupState, key)) {
                 accessCache[key] = 1 /* AccessTypes.SETUP */;
                 return setupState[key];
             }
@@ -10320,23 +9046,28 @@ const PublicInstanceProxyHandlers = {
     },
     set({ _: instance }, key, value) {
         const { data, setupState, ctx } = instance;
-        if (setupState !== _vue_shared__WEBPACK_IMPORTED_MODULE_1__.EMPTY_OBJ && (0,_vue_shared__WEBPACK_IMPORTED_MODULE_1__.hasOwn)(setupState, key)) {
+        if (hasSetupBinding(setupState, key)) {
             setupState[key] = value;
             return true;
+        }
+        else if (( true) &&
+            setupState.__isScriptSetup &&
+            (0,_vue_shared__WEBPACK_IMPORTED_MODULE_1__.hasOwn)(setupState, key)) {
+            warn(`Cannot mutate <script setup> binding "${key}" from Options API.`);
+            return false;
         }
         else if (data !== _vue_shared__WEBPACK_IMPORTED_MODULE_1__.EMPTY_OBJ && (0,_vue_shared__WEBPACK_IMPORTED_MODULE_1__.hasOwn)(data, key)) {
             data[key] = value;
             return true;
         }
         else if ((0,_vue_shared__WEBPACK_IMPORTED_MODULE_1__.hasOwn)(instance.props, key)) {
-            ( true) &&
-                warn(`Attempting to mutate prop "${key}". Props are readonly.`, instance);
+            ( true) && warn(`Attempting to mutate prop "${key}". Props are readonly.`);
             return false;
         }
         if (key[0] === '$' && key.slice(1) in instance) {
             ( true) &&
                 warn(`Attempting to mutate public property "${key}". ` +
-                    `Properties starting with $ are reserved and readonly.`, instance);
+                    `Properties starting with $ are reserved and readonly.`);
             return false;
         }
         else {
@@ -10357,7 +9088,7 @@ const PublicInstanceProxyHandlers = {
         let normalizedProps;
         return (!!accessCache[key] ||
             (data !== _vue_shared__WEBPACK_IMPORTED_MODULE_1__.EMPTY_OBJ && (0,_vue_shared__WEBPACK_IMPORTED_MODULE_1__.hasOwn)(data, key)) ||
-            (setupState !== _vue_shared__WEBPACK_IMPORTED_MODULE_1__.EMPTY_OBJ && (0,_vue_shared__WEBPACK_IMPORTED_MODULE_1__.hasOwn)(setupState, key)) ||
+            hasSetupBinding(setupState, key) ||
             ((normalizedProps = propsOptions[0]) && (0,_vue_shared__WEBPACK_IMPORTED_MODULE_1__.hasOwn)(normalizedProps, key)) ||
             (0,_vue_shared__WEBPACK_IMPORTED_MODULE_1__.hasOwn)(ctx, key) ||
             (0,_vue_shared__WEBPACK_IMPORTED_MODULE_1__.hasOwn)(publicPropertiesMap, key) ||
@@ -11144,7 +9875,7 @@ function normalizePropsOptions(comp, appContext, asMixin = false) {
             if (validatePropName(normalizedKey)) {
                 const opt = raw[key];
                 const prop = (normalized[normalizedKey] =
-                    (0,_vue_shared__WEBPACK_IMPORTED_MODULE_1__.isArray)(opt) || (0,_vue_shared__WEBPACK_IMPORTED_MODULE_1__.isFunction)(opt) ? { type: opt } : opt);
+                    (0,_vue_shared__WEBPACK_IMPORTED_MODULE_1__.isArray)(opt) || (0,_vue_shared__WEBPACK_IMPORTED_MODULE_1__.isFunction)(opt) ? { type: opt } : Object.assign({}, opt));
                 if (prop) {
                     const booleanIndex = getTypeIndex(Boolean, prop.type);
                     const stringIndex = getTypeIndex(String, prop.type);
@@ -11177,8 +9908,8 @@ function validatePropName(key) {
 // use function string name to check type constructors
 // so that it works across vms / iframes.
 function getType(ctor) {
-    const match = ctor && ctor.toString().match(/^\s*function (\w+)/);
-    return match ? match[1] : ctor === null ? 'null' : '';
+    const match = ctor && ctor.toString().match(/^\s*(function|class) (\w+)/);
+    return match ? match[2] : ctor === null ? 'null' : '';
 }
 function isSameType(a, b) {
     return getType(a) === getType(b);
@@ -11467,7 +10198,7 @@ function createAppContext() {
         emitsCache: new WeakMap()
     };
 }
-let uid = 0;
+let uid$1 = 0;
 function createAppAPI(render, hydrate) {
     return function createApp(rootComponent, rootProps = null) {
         if (!(0,_vue_shared__WEBPACK_IMPORTED_MODULE_1__.isFunction)(rootComponent)) {
@@ -11481,7 +10212,7 @@ function createAppAPI(render, hydrate) {
         const installedPlugins = new Set();
         let isMounted = false;
         const app = (context.app = {
-            _uid: uid++,
+            _uid: uid$1++,
             _component: rootComponent,
             _props: rootProps,
             _container: null,
@@ -12313,6 +11044,8 @@ function baseCreateRenderer(options, createHydrationFns) {
         if (dirs) {
             invokeDirectiveHook(vnode, null, parentComponent, 'created');
         }
+        // scopeId
+        setScopeId(el, vnode, vnode.scopeId, slotScopeIds, parentComponent);
         // props
         if (props) {
             for (const key in props) {
@@ -12336,8 +11069,6 @@ function baseCreateRenderer(options, createHydrationFns) {
                 invokeVNodeHook(vnodeHook, parentComponent, vnode);
             }
         }
-        // scopeId
-        setScopeId(el, vnode, vnode.scopeId, slotScopeIds, parentComponent);
         if (true) {
             Object.defineProperty(el, '__vnode', {
                 value: vnode,
@@ -13433,6 +12164,10 @@ function traverseStaticChildren(n1, n2, shallow = false) {
                 if (!shallow)
                     traverseStaticChildren(c1, c2);
             }
+            // #6852 also inherit for text nodes
+            if (c2.type === Text) {
+                c2.el = c1.el;
+            }
             // also inherit for comment nodes, but not placeholders (e.g. v-if which
             // would have received .el during block patch)
             if (( true) && c2.type === Comment && !c2.el) {
@@ -13607,6 +12342,7 @@ const TeleportImpl = {
                 }
             }
         }
+        updateCssVars(n2);
     },
     remove(vnode, parentComponent, parentSuspense, optimized, { um: unmount, o: { remove: hostRemove } }, doRemove) {
         const { shapeFlag, children, anchor, targetAnchor, target, props } = vnode;
@@ -13685,11 +12421,26 @@ function hydrateTeleport(node, vnode, parentComponent, parentSuspense, slotScope
                 hydrateChildren(targetNode, vnode, target, parentComponent, parentSuspense, slotScopeIds, optimized);
             }
         }
+        updateCssVars(vnode);
     }
     return vnode.anchor && nextSibling(vnode.anchor);
 }
 // Force-casted public typing for h and TSX props inference
 const Teleport = TeleportImpl;
+function updateCssVars(vnode) {
+    // presence of .ut method indicates owner component uses css vars.
+    // code path here can assume browser environment.
+    const ctx = vnode.ctx;
+    if (ctx && ctx.ut) {
+        let node = vnode.children[0].el;
+        while (node !== vnode.targetAnchor) {
+            if (node.nodeType === 1)
+                node.setAttribute('data-v-owner', ctx.uid);
+            node = node.nextSibling;
+        }
+        ctx.ut();
+    }
+}
 
 const Fragment = Symbol(( true) ? 'Fragment' : 0);
 const Text = Symbol(( true) ? 'Text' : 0);
@@ -13785,6 +12536,10 @@ function isSameVNodeType(n1, n2) {
     if (( true) &&
         n2.shapeFlag & 6 /* ShapeFlags.COMPONENT */ &&
         hmrDirtyComponents.has(n2.type)) {
+        // #7042, ensure the vnode being unmounted during HMR
+        // bitwise operations to remove keep alive flags
+        n1.shapeFlag &= ~256 /* ShapeFlags.COMPONENT_SHOULD_KEEP_ALIVE */;
+        n2.shapeFlag &= ~512 /* ShapeFlags.COMPONENT_KEPT_ALIVE */;
         // HMR only: if the component has been hot-updated, force a reload.
         return false;
     }
@@ -13840,7 +12595,8 @@ function createBaseVNode(type, props = null, children = null, patchFlag = 0, dyn
         patchFlag,
         dynamicProps,
         dynamicChildren: null,
-        appContext: null
+        appContext: null,
+        ctx: currentRenderingInstance
     };
     if (needFullChildrenNormalization) {
         normalizeChildren(vnode, children);
@@ -14007,7 +12763,9 @@ function cloneVNode(vnode, extraProps, mergeRef = false) {
         ssContent: vnode.ssContent && cloneVNode(vnode.ssContent),
         ssFallback: vnode.ssFallback && cloneVNode(vnode.ssFallback),
         el: vnode.el,
-        anchor: vnode.anchor
+        anchor: vnode.anchor,
+        ctx: vnode.ctx,
+        ce: vnode.ce
     };
     return cloned;
 }
@@ -14174,13 +12932,13 @@ function invokeVNodeHook(hook, instance, vnode, prevVNode = null) {
 }
 
 const emptyAppContext = createAppContext();
-let uid$1 = 0;
+let uid = 0;
 function createComponentInstance(vnode, parent, suspense) {
     const type = vnode.type;
     // inherit parent app context - or - if root, adopt from root vnode
     const appContext = (parent ? parent.appContext : vnode.appContext) || emptyAppContext;
     const instance = {
-        uid: uid$1++,
+        uid: uid++,
         vnode,
         type,
         parent,
@@ -14251,7 +13009,7 @@ function createComponentInstance(vnode, parent, suspense) {
     }
     else {}
     instance.root = parent ? parent.root : instance;
-    instance.emit = emit$1.bind(null, instance);
+    instance.emit = emit.bind(null, instance);
     // apply custom element special handling
     if (vnode.ce) {
         vnode.ce(instance);
@@ -14493,8 +13251,24 @@ function createAttrsProxy(instance) {
 }
 function createSetupContext(instance) {
     const expose = exposed => {
-        if (( true) && instance.exposed) {
-            warn(`expose() should be called only once per setup().`);
+        if ((true)) {
+            if (instance.exposed) {
+                warn(`expose() should be called only once per setup().`);
+            }
+            if (exposed != null) {
+                let exposedType = typeof exposed;
+                if (exposedType === 'object') {
+                    if ((0,_vue_shared__WEBPACK_IMPORTED_MODULE_1__.isArray)(exposed)) {
+                        exposedType = 'array';
+                    }
+                    else if ((0,_vue_reactivity__WEBPACK_IMPORTED_MODULE_0__.isRef)(exposed)) {
+                        exposedType = 'ref';
+                    }
+                }
+                if (exposedType !== 'object') {
+                    warn(`expose() should be passed a plain object, received ${exposedType}.`);
+                }
+            }
         }
         instance.exposed = exposed || {};
     };
@@ -14528,6 +13302,9 @@ function getExposeProxy(instance) {
                     else if (key in publicPropertiesMap) {
                         return publicPropertiesMap[key](instance);
                     }
+                },
+                has(target, key) {
+                    return key in target || key in publicPropertiesMap;
                 }
             })));
     }
@@ -14757,8 +13534,9 @@ const useSSRContext = () => {
     {
         const ctx = inject(ssrContextKey);
         if (!ctx) {
-            warn(`Server rendering context not provided. Make sure to only call ` +
-                `useSSRContext() conditionally in the server build.`);
+            ( true) &&
+                warn(`Server rendering context not provided. Make sure to only call ` +
+                    `useSSRContext() conditionally in the server build.`);
         }
         return ctx;
     }
@@ -14985,7 +13763,7 @@ function isMemoSame(cached, memo) {
 }
 
 // Core API ------------------------------------------------------------------
-const version = "3.2.41";
+const version = "3.2.47";
 const _ssrUtils = {
     createComponentInstance,
     setupComponent,
@@ -15057,7 +13835,7 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony export */   "triggerRef": () => (/* binding */ triggerRef),
 /* harmony export */   "unref": () => (/* binding */ unref)
 /* harmony export */ });
-/* harmony import */ var _vue_shared__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! @vue/shared */ "./node_modules/@vue/runtime-core/node_modules/@vue/shared/dist/shared.esm-bundler.js");
+/* harmony import */ var _vue_shared__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! @vue/shared */ "./node_modules/@vue/shared/dist/shared.esm-bundler.js");
 
 
 function warn(msg, ...args) {
@@ -15071,7 +13849,7 @@ class EffectScope {
         /**
          * @internal
          */
-        this.active = true;
+        this._active = true;
         /**
          * @internal
          */
@@ -15086,8 +13864,11 @@ class EffectScope {
                 (activeEffectScope.scopes || (activeEffectScope.scopes = [])).push(this) - 1;
         }
     }
+    get active() {
+        return this._active;
+    }
     run(fn) {
-        if (this.active) {
+        if (this._active) {
             const currentEffectScope = activeEffectScope;
             try {
                 activeEffectScope = this;
@@ -15116,7 +13897,7 @@ class EffectScope {
         activeEffectScope = this.parent;
     }
     stop(fromParent) {
-        if (this.active) {
+        if (this._active) {
             let i, l;
             for (i = 0, l = this.effects.length; i < l; i++) {
                 this.effects[i].stop();
@@ -15139,7 +13920,7 @@ class EffectScope {
                 }
             }
             this.parent = undefined;
-            this.active = false;
+            this._active = false;
         }
     }
 }
@@ -15365,8 +14146,9 @@ function trigger(target, type, key, newValue, oldValue, oldTarget) {
         deps = [...depsMap.values()];
     }
     else if (key === 'length' && (0,_vue_shared__WEBPACK_IMPORTED_MODULE_0__.isArray)(target)) {
+        const newLength = Number(newValue);
         depsMap.forEach((dep, key) => {
-            if (key === 'length' || key >= newValue) {
+            if (key === 'length' || key >= newLength) {
                 deps.push(dep);
             }
         });
@@ -15456,6 +14238,10 @@ function triggerEffect(effect, debuggerEventExtraInfo) {
         }
     }
 }
+function getDepFromReactive(object, key) {
+    var _a;
+    return (_a = targetMap.get(object)) === null || _a === void 0 ? void 0 : _a.get(key);
+}
 
 const isNonTrackableKeys = /*#__PURE__*/ (0,_vue_shared__WEBPACK_IMPORTED_MODULE_0__.makeMap)(`__proto__,__v_isRef,__isVue`);
 const builtInSymbols = new Set(
@@ -15467,7 +14253,7 @@ Object.getOwnPropertyNames(Symbol)
     .filter(key => key !== 'arguments' && key !== 'caller')
     .map(key => Symbol[key])
     .filter(_vue_shared__WEBPACK_IMPORTED_MODULE_0__.isSymbol));
-const get = /*#__PURE__*/ createGetter();
+const get$1 = /*#__PURE__*/ createGetter();
 const shallowGet = /*#__PURE__*/ createGetter(false, true);
 const readonlyGet = /*#__PURE__*/ createGetter(true);
 const shallowReadonlyGet = /*#__PURE__*/ createGetter(true, true);
@@ -15501,6 +14287,11 @@ function createArrayInstrumentations() {
     });
     return instrumentations;
 }
+function hasOwnProperty(key) {
+    const obj = toRaw(this);
+    track(obj, "has" /* TrackOpTypes.HAS */, key);
+    return obj.hasOwnProperty(key);
+}
 function createGetter(isReadonly = false, shallow = false) {
     return function get(target, key, receiver) {
         if (key === "__v_isReactive" /* ReactiveFlags.IS_REACTIVE */) {
@@ -15524,8 +14315,13 @@ function createGetter(isReadonly = false, shallow = false) {
             return target;
         }
         const targetIsArray = (0,_vue_shared__WEBPACK_IMPORTED_MODULE_0__.isArray)(target);
-        if (!isReadonly && targetIsArray && (0,_vue_shared__WEBPACK_IMPORTED_MODULE_0__.hasOwn)(arrayInstrumentations, key)) {
-            return Reflect.get(arrayInstrumentations, key, receiver);
+        if (!isReadonly) {
+            if (targetIsArray && (0,_vue_shared__WEBPACK_IMPORTED_MODULE_0__.hasOwn)(arrayInstrumentations, key)) {
+                return Reflect.get(arrayInstrumentations, key, receiver);
+            }
+            if (key === 'hasOwnProperty') {
+                return hasOwnProperty;
+            }
         }
         const res = Reflect.get(target, key, receiver);
         if ((0,_vue_shared__WEBPACK_IMPORTED_MODULE_0__.isSymbol)(key) ? builtInSymbols.has(key) : isNonTrackableKeys(key)) {
@@ -15550,7 +14346,7 @@ function createGetter(isReadonly = false, shallow = false) {
         return res;
     };
 }
-const set = /*#__PURE__*/ createSetter();
+const set$1 = /*#__PURE__*/ createSetter();
 const shallowSet = /*#__PURE__*/ createSetter(true);
 function createSetter(shallow = false) {
     return function set(target, key, value, receiver) {
@@ -15593,7 +14389,7 @@ function deleteProperty(target, key) {
     }
     return result;
 }
-function has(target, key) {
+function has$1(target, key) {
     const result = Reflect.has(target, key);
     if (!(0,_vue_shared__WEBPACK_IMPORTED_MODULE_0__.isSymbol)(key) || !builtInSymbols.has(key)) {
         track(target, "has" /* TrackOpTypes.HAS */, key);
@@ -15605,10 +14401,10 @@ function ownKeys(target) {
     return Reflect.ownKeys(target);
 }
 const mutableHandlers = {
-    get,
-    set,
+    get: get$1,
+    set: set$1,
     deleteProperty,
-    has,
+    has: has$1,
     ownKeys
 };
 const readonlyHandlers = {
@@ -15639,7 +14435,7 @@ const shallowReadonlyHandlers = /*#__PURE__*/ (0,_vue_shared__WEBPACK_IMPORTED_M
 
 const toShallow = (value) => value;
 const getProto = (v) => Reflect.getPrototypeOf(v);
-function get$1(target, key, isReadonly = false, isShallow = false) {
+function get(target, key, isReadonly = false, isShallow = false) {
     // #1772: readonly(reactive(Map)) should return readonly + reactive version
     // of the value
     target = target["__v_raw" /* ReactiveFlags.RAW */];
@@ -15665,7 +14461,7 @@ function get$1(target, key, isReadonly = false, isShallow = false) {
         target.get(key);
     }
 }
-function has$1(key, isReadonly = false) {
+function has(key, isReadonly = false) {
     const target = this["__v_raw" /* ReactiveFlags.RAW */];
     const rawTarget = toRaw(target);
     const rawKey = toRaw(key);
@@ -15695,7 +14491,7 @@ function add(value) {
     }
     return this;
 }
-function set$1(key, value) {
+function set(key, value) {
     value = toRaw(value);
     const target = toRaw(this);
     const { has, get } = getProto(target);
@@ -15809,41 +14605,41 @@ function createReadonlyMethod(type) {
 function createInstrumentations() {
     const mutableInstrumentations = {
         get(key) {
-            return get$1(this, key);
+            return get(this, key);
         },
         get size() {
             return size(this);
         },
-        has: has$1,
+        has,
         add,
-        set: set$1,
+        set,
         delete: deleteEntry,
         clear,
         forEach: createForEach(false, false)
     };
     const shallowInstrumentations = {
         get(key) {
-            return get$1(this, key, false, true);
+            return get(this, key, false, true);
         },
         get size() {
             return size(this);
         },
-        has: has$1,
+        has,
         add,
-        set: set$1,
+        set,
         delete: deleteEntry,
         clear,
         forEach: createForEach(false, true)
     };
     const readonlyInstrumentations = {
         get(key) {
-            return get$1(this, key, true);
+            return get(this, key, true);
         },
         get size() {
             return size(this, true);
         },
         has(key) {
-            return has$1.call(this, key, true);
+            return has.call(this, key, true);
         },
         add: createReadonlyMethod("add" /* TriggerOpTypes.ADD */),
         set: createReadonlyMethod("set" /* TriggerOpTypes.SET */),
@@ -15853,13 +14649,13 @@ function createInstrumentations() {
     };
     const shallowReadonlyInstrumentations = {
         get(key) {
-            return get$1(this, key, true, true);
+            return get(this, key, true, true);
         },
         get size() {
             return size(this, true);
         },
         has(key) {
-            return has$1.call(this, key, true);
+            return has.call(this, key, true);
         },
         add: createReadonlyMethod("add" /* TriggerOpTypes.ADD */),
         set: createReadonlyMethod("set" /* TriggerOpTypes.SET */),
@@ -16051,9 +14847,10 @@ function trackRefValue(ref) {
 }
 function triggerRefValue(ref, newVal) {
     ref = toRaw(ref);
-    if (ref.dep) {
+    const dep = ref.dep;
+    if (dep) {
         if ((true)) {
-            triggerEffects(ref.dep, {
+            triggerEffects(dep, {
                 target: ref,
                 type: "set" /* TriggerOpTypes.SET */,
                 key: 'value',
@@ -16166,6 +14963,9 @@ class ObjectRefImpl {
     set value(newVal) {
         this._object[this._key] = newVal;
     }
+    get dep() {
+        return getDepFromReactive(toRaw(this._object), this._key);
+    }
 }
 function toRef(object, key, defaultValue) {
     const val = object[key];
@@ -16174,13 +14974,13 @@ function toRef(object, key, defaultValue) {
         : new ObjectRefImpl(object, key, defaultValue);
 }
 
-var _a;
+var _a$1;
 class ComputedRefImpl {
     constructor(getter, _setter, isReadonly, isSSR) {
         this._setter = _setter;
         this.dep = undefined;
         this.__v_isRef = true;
-        this[_a] = false;
+        this[_a$1] = false;
         this._dirty = true;
         this.effect = new ReactiveEffect(getter, () => {
             if (!this._dirty) {
@@ -16206,7 +15006,7 @@ class ComputedRefImpl {
         this._setter(newValue);
     }
 }
-_a = "__v_isReadonly" /* ReactiveFlags.IS_READONLY */;
+_a$1 = "__v_isReadonly" /* ReactiveFlags.IS_READONLY */;
 function computed(getterOrOptions, debugOptions, isSSR = false) {
     let getter;
     let setter;
@@ -16231,7 +15031,7 @@ function computed(getterOrOptions, debugOptions, isSSR = false) {
     return cRef;
 }
 
-var _a$1;
+var _a;
 const tick = /*#__PURE__*/ Promise.resolve();
 const queue = [];
 let queued = false;
@@ -16254,7 +15054,7 @@ class DeferredComputedRefImpl {
         this.dep = undefined;
         this._dirty = true;
         this.__v_isRef = true;
-        this[_a$1] = true;
+        this[_a] = true;
         let compareTarget;
         let hasCompareTarget = false;
         let scheduled = false;
@@ -16301,680 +15101,9 @@ class DeferredComputedRefImpl {
         return toRaw(this)._get();
     }
 }
-_a$1 = "__v_isReadonly" /* ReactiveFlags.IS_READONLY */;
+_a = "__v_isReadonly" /* ReactiveFlags.IS_READONLY */;
 function deferredComputed(getter) {
     return new DeferredComputedRefImpl(getter);
-}
-
-
-
-
-/***/ }),
-
-/***/ "./node_modules/@vue/runtime-core/node_modules/@vue/shared/dist/shared.esm-bundler.js":
-/*!********************************************************************************************!*\
-  !*** ./node_modules/@vue/runtime-core/node_modules/@vue/shared/dist/shared.esm-bundler.js ***!
-  \********************************************************************************************/
-/***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
-
-"use strict";
-__webpack_require__.r(__webpack_exports__);
-/* harmony export */ __webpack_require__.d(__webpack_exports__, {
-/* harmony export */   "EMPTY_ARR": () => (/* binding */ EMPTY_ARR),
-/* harmony export */   "EMPTY_OBJ": () => (/* binding */ EMPTY_OBJ),
-/* harmony export */   "NO": () => (/* binding */ NO),
-/* harmony export */   "NOOP": () => (/* binding */ NOOP),
-/* harmony export */   "PatchFlagNames": () => (/* binding */ PatchFlagNames),
-/* harmony export */   "camelize": () => (/* binding */ camelize),
-/* harmony export */   "capitalize": () => (/* binding */ capitalize),
-/* harmony export */   "def": () => (/* binding */ def),
-/* harmony export */   "escapeHtml": () => (/* binding */ escapeHtml),
-/* harmony export */   "escapeHtmlComment": () => (/* binding */ escapeHtmlComment),
-/* harmony export */   "extend": () => (/* binding */ extend),
-/* harmony export */   "genPropsAccessExp": () => (/* binding */ genPropsAccessExp),
-/* harmony export */   "generateCodeFrame": () => (/* binding */ generateCodeFrame),
-/* harmony export */   "getGlobalThis": () => (/* binding */ getGlobalThis),
-/* harmony export */   "hasChanged": () => (/* binding */ hasChanged),
-/* harmony export */   "hasOwn": () => (/* binding */ hasOwn),
-/* harmony export */   "hyphenate": () => (/* binding */ hyphenate),
-/* harmony export */   "includeBooleanAttr": () => (/* binding */ includeBooleanAttr),
-/* harmony export */   "invokeArrayFns": () => (/* binding */ invokeArrayFns),
-/* harmony export */   "isArray": () => (/* binding */ isArray),
-/* harmony export */   "isBooleanAttr": () => (/* binding */ isBooleanAttr),
-/* harmony export */   "isBuiltInDirective": () => (/* binding */ isBuiltInDirective),
-/* harmony export */   "isDate": () => (/* binding */ isDate),
-/* harmony export */   "isFunction": () => (/* binding */ isFunction),
-/* harmony export */   "isGloballyWhitelisted": () => (/* binding */ isGloballyWhitelisted),
-/* harmony export */   "isHTMLTag": () => (/* binding */ isHTMLTag),
-/* harmony export */   "isIntegerKey": () => (/* binding */ isIntegerKey),
-/* harmony export */   "isKnownHtmlAttr": () => (/* binding */ isKnownHtmlAttr),
-/* harmony export */   "isKnownSvgAttr": () => (/* binding */ isKnownSvgAttr),
-/* harmony export */   "isMap": () => (/* binding */ isMap),
-/* harmony export */   "isModelListener": () => (/* binding */ isModelListener),
-/* harmony export */   "isNoUnitNumericStyleProp": () => (/* binding */ isNoUnitNumericStyleProp),
-/* harmony export */   "isObject": () => (/* binding */ isObject),
-/* harmony export */   "isOn": () => (/* binding */ isOn),
-/* harmony export */   "isPlainObject": () => (/* binding */ isPlainObject),
-/* harmony export */   "isPromise": () => (/* binding */ isPromise),
-/* harmony export */   "isReservedProp": () => (/* binding */ isReservedProp),
-/* harmony export */   "isSSRSafeAttrName": () => (/* binding */ isSSRSafeAttrName),
-/* harmony export */   "isSVGTag": () => (/* binding */ isSVGTag),
-/* harmony export */   "isSet": () => (/* binding */ isSet),
-/* harmony export */   "isSpecialBooleanAttr": () => (/* binding */ isSpecialBooleanAttr),
-/* harmony export */   "isString": () => (/* binding */ isString),
-/* harmony export */   "isSymbol": () => (/* binding */ isSymbol),
-/* harmony export */   "isVoidTag": () => (/* binding */ isVoidTag),
-/* harmony export */   "looseEqual": () => (/* binding */ looseEqual),
-/* harmony export */   "looseIndexOf": () => (/* binding */ looseIndexOf),
-/* harmony export */   "makeMap": () => (/* binding */ makeMap),
-/* harmony export */   "normalizeClass": () => (/* binding */ normalizeClass),
-/* harmony export */   "normalizeProps": () => (/* binding */ normalizeProps),
-/* harmony export */   "normalizeStyle": () => (/* binding */ normalizeStyle),
-/* harmony export */   "objectToString": () => (/* binding */ objectToString),
-/* harmony export */   "parseStringStyle": () => (/* binding */ parseStringStyle),
-/* harmony export */   "propsToAttrMap": () => (/* binding */ propsToAttrMap),
-/* harmony export */   "remove": () => (/* binding */ remove),
-/* harmony export */   "slotFlagsText": () => (/* binding */ slotFlagsText),
-/* harmony export */   "stringifyStyle": () => (/* binding */ stringifyStyle),
-/* harmony export */   "toDisplayString": () => (/* binding */ toDisplayString),
-/* harmony export */   "toHandlerKey": () => (/* binding */ toHandlerKey),
-/* harmony export */   "toNumber": () => (/* binding */ toNumber),
-/* harmony export */   "toRawType": () => (/* binding */ toRawType),
-/* harmony export */   "toTypeString": () => (/* binding */ toTypeString)
-/* harmony export */ });
-/**
- * Make a map and return a function for checking if a key
- * is in that map.
- * IMPORTANT: all calls of this function must be prefixed with
- * \/\*#\_\_PURE\_\_\*\/
- * So that rollup can tree-shake them if necessary.
- */
-function makeMap(str, expectsLowerCase) {
-    const map = Object.create(null);
-    const list = str.split(',');
-    for (let i = 0; i < list.length; i++) {
-        map[list[i]] = true;
-    }
-    return expectsLowerCase ? val => !!map[val.toLowerCase()] : val => !!map[val];
-}
-
-/**
- * dev only flag -> name mapping
- */
-const PatchFlagNames = {
-    [1 /* PatchFlags.TEXT */]: `TEXT`,
-    [2 /* PatchFlags.CLASS */]: `CLASS`,
-    [4 /* PatchFlags.STYLE */]: `STYLE`,
-    [8 /* PatchFlags.PROPS */]: `PROPS`,
-    [16 /* PatchFlags.FULL_PROPS */]: `FULL_PROPS`,
-    [32 /* PatchFlags.HYDRATE_EVENTS */]: `HYDRATE_EVENTS`,
-    [64 /* PatchFlags.STABLE_FRAGMENT */]: `STABLE_FRAGMENT`,
-    [128 /* PatchFlags.KEYED_FRAGMENT */]: `KEYED_FRAGMENT`,
-    [256 /* PatchFlags.UNKEYED_FRAGMENT */]: `UNKEYED_FRAGMENT`,
-    [512 /* PatchFlags.NEED_PATCH */]: `NEED_PATCH`,
-    [1024 /* PatchFlags.DYNAMIC_SLOTS */]: `DYNAMIC_SLOTS`,
-    [2048 /* PatchFlags.DEV_ROOT_FRAGMENT */]: `DEV_ROOT_FRAGMENT`,
-    [-1 /* PatchFlags.HOISTED */]: `HOISTED`,
-    [-2 /* PatchFlags.BAIL */]: `BAIL`
-};
-
-/**
- * Dev only
- */
-const slotFlagsText = {
-    [1 /* SlotFlags.STABLE */]: 'STABLE',
-    [2 /* SlotFlags.DYNAMIC */]: 'DYNAMIC',
-    [3 /* SlotFlags.FORWARDED */]: 'FORWARDED'
-};
-
-const GLOBALS_WHITE_LISTED = 'Infinity,undefined,NaN,isFinite,isNaN,parseFloat,parseInt,decodeURI,' +
-    'decodeURIComponent,encodeURI,encodeURIComponent,Math,Number,Date,Array,' +
-    'Object,Boolean,String,RegExp,Map,Set,JSON,Intl,BigInt';
-const isGloballyWhitelisted = /*#__PURE__*/ makeMap(GLOBALS_WHITE_LISTED);
-
-const range = 2;
-function generateCodeFrame(source, start = 0, end = source.length) {
-    // Split the content into individual lines but capture the newline sequence
-    // that separated each line. This is important because the actual sequence is
-    // needed to properly take into account the full line length for offset
-    // comparison
-    let lines = source.split(/(\r?\n)/);
-    // Separate the lines and newline sequences into separate arrays for easier referencing
-    const newlineSequences = lines.filter((_, idx) => idx % 2 === 1);
-    lines = lines.filter((_, idx) => idx % 2 === 0);
-    let count = 0;
-    const res = [];
-    for (let i = 0; i < lines.length; i++) {
-        count +=
-            lines[i].length +
-                ((newlineSequences[i] && newlineSequences[i].length) || 0);
-        if (count >= start) {
-            for (let j = i - range; j <= i + range || end > count; j++) {
-                if (j < 0 || j >= lines.length)
-                    continue;
-                const line = j + 1;
-                res.push(`${line}${' '.repeat(Math.max(3 - String(line).length, 0))}|  ${lines[j]}`);
-                const lineLength = lines[j].length;
-                const newLineSeqLength = (newlineSequences[j] && newlineSequences[j].length) || 0;
-                if (j === i) {
-                    // push underline
-                    const pad = start - (count - (lineLength + newLineSeqLength));
-                    const length = Math.max(1, end > count ? lineLength - pad : end - start);
-                    res.push(`   |  ` + ' '.repeat(pad) + '^'.repeat(length));
-                }
-                else if (j > i) {
-                    if (end > count) {
-                        const length = Math.max(Math.min(end - count, lineLength), 1);
-                        res.push(`   |  ` + '^'.repeat(length));
-                    }
-                    count += lineLength + newLineSeqLength;
-                }
-            }
-            break;
-        }
-    }
-    return res.join('\n');
-}
-
-/**
- * On the client we only need to offer special cases for boolean attributes that
- * have different names from their corresponding dom properties:
- * - itemscope -> N/A
- * - allowfullscreen -> allowFullscreen
- * - formnovalidate -> formNoValidate
- * - ismap -> isMap
- * - nomodule -> noModule
- * - novalidate -> noValidate
- * - readonly -> readOnly
- */
-const specialBooleanAttrs = `itemscope,allowfullscreen,formnovalidate,ismap,nomodule,novalidate,readonly`;
-const isSpecialBooleanAttr = /*#__PURE__*/ makeMap(specialBooleanAttrs);
-/**
- * The full list is needed during SSR to produce the correct initial markup.
- */
-const isBooleanAttr = /*#__PURE__*/ makeMap(specialBooleanAttrs +
-    `,async,autofocus,autoplay,controls,default,defer,disabled,hidden,` +
-    `loop,open,required,reversed,scoped,seamless,` +
-    `checked,muted,multiple,selected`);
-/**
- * Boolean attributes should be included if the value is truthy or ''.
- * e.g. `<select multiple>` compiles to `{ multiple: '' }`
- */
-function includeBooleanAttr(value) {
-    return !!value || value === '';
-}
-const unsafeAttrCharRE = /[>/="'\u0009\u000a\u000c\u0020]/;
-const attrValidationCache = {};
-function isSSRSafeAttrName(name) {
-    if (attrValidationCache.hasOwnProperty(name)) {
-        return attrValidationCache[name];
-    }
-    const isUnsafe = unsafeAttrCharRE.test(name);
-    if (isUnsafe) {
-        console.error(`unsafe attribute name: ${name}`);
-    }
-    return (attrValidationCache[name] = !isUnsafe);
-}
-const propsToAttrMap = {
-    acceptCharset: 'accept-charset',
-    className: 'class',
-    htmlFor: 'for',
-    httpEquiv: 'http-equiv'
-};
-/**
- * CSS properties that accept plain numbers
- */
-const isNoUnitNumericStyleProp = /*#__PURE__*/ makeMap(`animation-iteration-count,border-image-outset,border-image-slice,` +
-    `border-image-width,box-flex,box-flex-group,box-ordinal-group,column-count,` +
-    `columns,flex,flex-grow,flex-positive,flex-shrink,flex-negative,flex-order,` +
-    `grid-row,grid-row-end,grid-row-span,grid-row-start,grid-column,` +
-    `grid-column-end,grid-column-span,grid-column-start,font-weight,line-clamp,` +
-    `line-height,opacity,order,orphans,tab-size,widows,z-index,zoom,` +
-    // SVG
-    `fill-opacity,flood-opacity,stop-opacity,stroke-dasharray,stroke-dashoffset,` +
-    `stroke-miterlimit,stroke-opacity,stroke-width`);
-/**
- * Known attributes, this is used for stringification of runtime static nodes
- * so that we don't stringify bindings that cannot be set from HTML.
- * Don't also forget to allow `data-*` and `aria-*`!
- * Generated from https://developer.mozilla.org/en-US/docs/Web/HTML/Attributes
- */
-const isKnownHtmlAttr = /*#__PURE__*/ makeMap(`accept,accept-charset,accesskey,action,align,allow,alt,async,` +
-    `autocapitalize,autocomplete,autofocus,autoplay,background,bgcolor,` +
-    `border,buffered,capture,challenge,charset,checked,cite,class,code,` +
-    `codebase,color,cols,colspan,content,contenteditable,contextmenu,controls,` +
-    `coords,crossorigin,csp,data,datetime,decoding,default,defer,dir,dirname,` +
-    `disabled,download,draggable,dropzone,enctype,enterkeyhint,for,form,` +
-    `formaction,formenctype,formmethod,formnovalidate,formtarget,headers,` +
-    `height,hidden,high,href,hreflang,http-equiv,icon,id,importance,integrity,` +
-    `ismap,itemprop,keytype,kind,label,lang,language,loading,list,loop,low,` +
-    `manifest,max,maxlength,minlength,media,min,multiple,muted,name,novalidate,` +
-    `open,optimum,pattern,ping,placeholder,poster,preload,radiogroup,readonly,` +
-    `referrerpolicy,rel,required,reversed,rows,rowspan,sandbox,scope,scoped,` +
-    `selected,shape,size,sizes,slot,span,spellcheck,src,srcdoc,srclang,srcset,` +
-    `start,step,style,summary,tabindex,target,title,translate,type,usemap,` +
-    `value,width,wrap`);
-/**
- * Generated from https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute
- */
-const isKnownSvgAttr = /*#__PURE__*/ makeMap(`xmlns,accent-height,accumulate,additive,alignment-baseline,alphabetic,amplitude,` +
-    `arabic-form,ascent,attributeName,attributeType,azimuth,baseFrequency,` +
-    `baseline-shift,baseProfile,bbox,begin,bias,by,calcMode,cap-height,class,` +
-    `clip,clipPathUnits,clip-path,clip-rule,color,color-interpolation,` +
-    `color-interpolation-filters,color-profile,color-rendering,` +
-    `contentScriptType,contentStyleType,crossorigin,cursor,cx,cy,d,decelerate,` +
-    `descent,diffuseConstant,direction,display,divisor,dominant-baseline,dur,dx,` +
-    `dy,edgeMode,elevation,enable-background,end,exponent,fill,fill-opacity,` +
-    `fill-rule,filter,filterRes,filterUnits,flood-color,flood-opacity,` +
-    `font-family,font-size,font-size-adjust,font-stretch,font-style,` +
-    `font-variant,font-weight,format,from,fr,fx,fy,g1,g2,glyph-name,` +
-    `glyph-orientation-horizontal,glyph-orientation-vertical,glyphRef,` +
-    `gradientTransform,gradientUnits,hanging,height,href,hreflang,horiz-adv-x,` +
-    `horiz-origin-x,id,ideographic,image-rendering,in,in2,intercept,k,k1,k2,k3,` +
-    `k4,kernelMatrix,kernelUnitLength,kerning,keyPoints,keySplines,keyTimes,` +
-    `lang,lengthAdjust,letter-spacing,lighting-color,limitingConeAngle,local,` +
-    `marker-end,marker-mid,marker-start,markerHeight,markerUnits,markerWidth,` +
-    `mask,maskContentUnits,maskUnits,mathematical,max,media,method,min,mode,` +
-    `name,numOctaves,offset,opacity,operator,order,orient,orientation,origin,` +
-    `overflow,overline-position,overline-thickness,panose-1,paint-order,path,` +
-    `pathLength,patternContentUnits,patternTransform,patternUnits,ping,` +
-    `pointer-events,points,pointsAtX,pointsAtY,pointsAtZ,preserveAlpha,` +
-    `preserveAspectRatio,primitiveUnits,r,radius,referrerPolicy,refX,refY,rel,` +
-    `rendering-intent,repeatCount,repeatDur,requiredExtensions,requiredFeatures,` +
-    `restart,result,rotate,rx,ry,scale,seed,shape-rendering,slope,spacing,` +
-    `specularConstant,specularExponent,speed,spreadMethod,startOffset,` +
-    `stdDeviation,stemh,stemv,stitchTiles,stop-color,stop-opacity,` +
-    `strikethrough-position,strikethrough-thickness,string,stroke,` +
-    `stroke-dasharray,stroke-dashoffset,stroke-linecap,stroke-linejoin,` +
-    `stroke-miterlimit,stroke-opacity,stroke-width,style,surfaceScale,` +
-    `systemLanguage,tabindex,tableValues,target,targetX,targetY,text-anchor,` +
-    `text-decoration,text-rendering,textLength,to,transform,transform-origin,` +
-    `type,u1,u2,underline-position,underline-thickness,unicode,unicode-bidi,` +
-    `unicode-range,units-per-em,v-alphabetic,v-hanging,v-ideographic,` +
-    `v-mathematical,values,vector-effect,version,vert-adv-y,vert-origin-x,` +
-    `vert-origin-y,viewBox,viewTarget,visibility,width,widths,word-spacing,` +
-    `writing-mode,x,x-height,x1,x2,xChannelSelector,xlink:actuate,xlink:arcrole,` +
-    `xlink:href,xlink:role,xlink:show,xlink:title,xlink:type,xml:base,xml:lang,` +
-    `xml:space,y,y1,y2,yChannelSelector,z,zoomAndPan`);
-
-function normalizeStyle(value) {
-    if (isArray(value)) {
-        const res = {};
-        for (let i = 0; i < value.length; i++) {
-            const item = value[i];
-            const normalized = isString(item)
-                ? parseStringStyle(item)
-                : normalizeStyle(item);
-            if (normalized) {
-                for (const key in normalized) {
-                    res[key] = normalized[key];
-                }
-            }
-        }
-        return res;
-    }
-    else if (isString(value)) {
-        return value;
-    }
-    else if (isObject(value)) {
-        return value;
-    }
-}
-const listDelimiterRE = /;(?![^(]*\))/g;
-const propertyDelimiterRE = /:(.+)/;
-function parseStringStyle(cssText) {
-    const ret = {};
-    cssText.split(listDelimiterRE).forEach(item => {
-        if (item) {
-            const tmp = item.split(propertyDelimiterRE);
-            tmp.length > 1 && (ret[tmp[0].trim()] = tmp[1].trim());
-        }
-    });
-    return ret;
-}
-function stringifyStyle(styles) {
-    let ret = '';
-    if (!styles || isString(styles)) {
-        return ret;
-    }
-    for (const key in styles) {
-        const value = styles[key];
-        const normalizedKey = key.startsWith(`--`) ? key : hyphenate(key);
-        if (isString(value) ||
-            (typeof value === 'number' && isNoUnitNumericStyleProp(normalizedKey))) {
-            // only render valid values
-            ret += `${normalizedKey}:${value};`;
-        }
-    }
-    return ret;
-}
-function normalizeClass(value) {
-    let res = '';
-    if (isString(value)) {
-        res = value;
-    }
-    else if (isArray(value)) {
-        for (let i = 0; i < value.length; i++) {
-            const normalized = normalizeClass(value[i]);
-            if (normalized) {
-                res += normalized + ' ';
-            }
-        }
-    }
-    else if (isObject(value)) {
-        for (const name in value) {
-            if (value[name]) {
-                res += name + ' ';
-            }
-        }
-    }
-    return res.trim();
-}
-function normalizeProps(props) {
-    if (!props)
-        return null;
-    let { class: klass, style } = props;
-    if (klass && !isString(klass)) {
-        props.class = normalizeClass(klass);
-    }
-    if (style) {
-        props.style = normalizeStyle(style);
-    }
-    return props;
-}
-
-// These tag configs are shared between compiler-dom and runtime-dom, so they
-// https://developer.mozilla.org/en-US/docs/Web/HTML/Element
-const HTML_TAGS = 'html,body,base,head,link,meta,style,title,address,article,aside,footer,' +
-    'header,h1,h2,h3,h4,h5,h6,nav,section,div,dd,dl,dt,figcaption,' +
-    'figure,picture,hr,img,li,main,ol,p,pre,ul,a,b,abbr,bdi,bdo,br,cite,code,' +
-    'data,dfn,em,i,kbd,mark,q,rp,rt,ruby,s,samp,small,span,strong,sub,sup,' +
-    'time,u,var,wbr,area,audio,map,track,video,embed,object,param,source,' +
-    'canvas,script,noscript,del,ins,caption,col,colgroup,table,thead,tbody,td,' +
-    'th,tr,button,datalist,fieldset,form,input,label,legend,meter,optgroup,' +
-    'option,output,progress,select,textarea,details,dialog,menu,' +
-    'summary,template,blockquote,iframe,tfoot';
-// https://developer.mozilla.org/en-US/docs/Web/SVG/Element
-const SVG_TAGS = 'svg,animate,animateMotion,animateTransform,circle,clipPath,color-profile,' +
-    'defs,desc,discard,ellipse,feBlend,feColorMatrix,feComponentTransfer,' +
-    'feComposite,feConvolveMatrix,feDiffuseLighting,feDisplacementMap,' +
-    'feDistanceLight,feDropShadow,feFlood,feFuncA,feFuncB,feFuncG,feFuncR,' +
-    'feGaussianBlur,feImage,feMerge,feMergeNode,feMorphology,feOffset,' +
-    'fePointLight,feSpecularLighting,feSpotLight,feTile,feTurbulence,filter,' +
-    'foreignObject,g,hatch,hatchpath,image,line,linearGradient,marker,mask,' +
-    'mesh,meshgradient,meshpatch,meshrow,metadata,mpath,path,pattern,' +
-    'polygon,polyline,radialGradient,rect,set,solidcolor,stop,switch,symbol,' +
-    'text,textPath,title,tspan,unknown,use,view';
-const VOID_TAGS = 'area,base,br,col,embed,hr,img,input,link,meta,param,source,track,wbr';
-/**
- * Compiler only.
- * Do NOT use in runtime code paths unless behind `(process.env.NODE_ENV !== 'production')` flag.
- */
-const isHTMLTag = /*#__PURE__*/ makeMap(HTML_TAGS);
-/**
- * Compiler only.
- * Do NOT use in runtime code paths unless behind `(process.env.NODE_ENV !== 'production')` flag.
- */
-const isSVGTag = /*#__PURE__*/ makeMap(SVG_TAGS);
-/**
- * Compiler only.
- * Do NOT use in runtime code paths unless behind `(process.env.NODE_ENV !== 'production')` flag.
- */
-const isVoidTag = /*#__PURE__*/ makeMap(VOID_TAGS);
-
-const escapeRE = /["'&<>]/;
-function escapeHtml(string) {
-    const str = '' + string;
-    const match = escapeRE.exec(str);
-    if (!match) {
-        return str;
-    }
-    let html = '';
-    let escaped;
-    let index;
-    let lastIndex = 0;
-    for (index = match.index; index < str.length; index++) {
-        switch (str.charCodeAt(index)) {
-            case 34: // "
-                escaped = '&quot;';
-                break;
-            case 38: // &
-                escaped = '&amp;';
-                break;
-            case 39: // '
-                escaped = '&#39;';
-                break;
-            case 60: // <
-                escaped = '&lt;';
-                break;
-            case 62: // >
-                escaped = '&gt;';
-                break;
-            default:
-                continue;
-        }
-        if (lastIndex !== index) {
-            html += str.slice(lastIndex, index);
-        }
-        lastIndex = index + 1;
-        html += escaped;
-    }
-    return lastIndex !== index ? html + str.slice(lastIndex, index) : html;
-}
-// https://www.w3.org/TR/html52/syntax.html#comments
-const commentStripRE = /^-?>|<!--|-->|--!>|<!-$/g;
-function escapeHtmlComment(src) {
-    return src.replace(commentStripRE, '');
-}
-
-function looseCompareArrays(a, b) {
-    if (a.length !== b.length)
-        return false;
-    let equal = true;
-    for (let i = 0; equal && i < a.length; i++) {
-        equal = looseEqual(a[i], b[i]);
-    }
-    return equal;
-}
-function looseEqual(a, b) {
-    if (a === b)
-        return true;
-    let aValidType = isDate(a);
-    let bValidType = isDate(b);
-    if (aValidType || bValidType) {
-        return aValidType && bValidType ? a.getTime() === b.getTime() : false;
-    }
-    aValidType = isSymbol(a);
-    bValidType = isSymbol(b);
-    if (aValidType || bValidType) {
-        return a === b;
-    }
-    aValidType = isArray(a);
-    bValidType = isArray(b);
-    if (aValidType || bValidType) {
-        return aValidType && bValidType ? looseCompareArrays(a, b) : false;
-    }
-    aValidType = isObject(a);
-    bValidType = isObject(b);
-    if (aValidType || bValidType) {
-        /* istanbul ignore if: this if will probably never be called */
-        if (!aValidType || !bValidType) {
-            return false;
-        }
-        const aKeysCount = Object.keys(a).length;
-        const bKeysCount = Object.keys(b).length;
-        if (aKeysCount !== bKeysCount) {
-            return false;
-        }
-        for (const key in a) {
-            const aHasKey = a.hasOwnProperty(key);
-            const bHasKey = b.hasOwnProperty(key);
-            if ((aHasKey && !bHasKey) ||
-                (!aHasKey && bHasKey) ||
-                !looseEqual(a[key], b[key])) {
-                return false;
-            }
-        }
-    }
-    return String(a) === String(b);
-}
-function looseIndexOf(arr, val) {
-    return arr.findIndex(item => looseEqual(item, val));
-}
-
-/**
- * For converting {{ interpolation }} values to displayed strings.
- * @private
- */
-const toDisplayString = (val) => {
-    return isString(val)
-        ? val
-        : val == null
-            ? ''
-            : isArray(val) ||
-                (isObject(val) &&
-                    (val.toString === objectToString || !isFunction(val.toString)))
-                ? JSON.stringify(val, replacer, 2)
-                : String(val);
-};
-const replacer = (_key, val) => {
-    // can't use isRef here since @vue/shared has no deps
-    if (val && val.__v_isRef) {
-        return replacer(_key, val.value);
-    }
-    else if (isMap(val)) {
-        return {
-            [`Map(${val.size})`]: [...val.entries()].reduce((entries, [key, val]) => {
-                entries[`${key} =>`] = val;
-                return entries;
-            }, {})
-        };
-    }
-    else if (isSet(val)) {
-        return {
-            [`Set(${val.size})`]: [...val.values()]
-        };
-    }
-    else if (isObject(val) && !isArray(val) && !isPlainObject(val)) {
-        return String(val);
-    }
-    return val;
-};
-
-const EMPTY_OBJ = ( true)
-    ? Object.freeze({})
-    : 0;
-const EMPTY_ARR = ( true) ? Object.freeze([]) : 0;
-const NOOP = () => { };
-/**
- * Always return false.
- */
-const NO = () => false;
-const onRE = /^on[^a-z]/;
-const isOn = (key) => onRE.test(key);
-const isModelListener = (key) => key.startsWith('onUpdate:');
-const extend = Object.assign;
-const remove = (arr, el) => {
-    const i = arr.indexOf(el);
-    if (i > -1) {
-        arr.splice(i, 1);
-    }
-};
-const hasOwnProperty = Object.prototype.hasOwnProperty;
-const hasOwn = (val, key) => hasOwnProperty.call(val, key);
-const isArray = Array.isArray;
-const isMap = (val) => toTypeString(val) === '[object Map]';
-const isSet = (val) => toTypeString(val) === '[object Set]';
-const isDate = (val) => toTypeString(val) === '[object Date]';
-const isFunction = (val) => typeof val === 'function';
-const isString = (val) => typeof val === 'string';
-const isSymbol = (val) => typeof val === 'symbol';
-const isObject = (val) => val !== null && typeof val === 'object';
-const isPromise = (val) => {
-    return isObject(val) && isFunction(val.then) && isFunction(val.catch);
-};
-const objectToString = Object.prototype.toString;
-const toTypeString = (value) => objectToString.call(value);
-const toRawType = (value) => {
-    // extract "RawType" from strings like "[object RawType]"
-    return toTypeString(value).slice(8, -1);
-};
-const isPlainObject = (val) => toTypeString(val) === '[object Object]';
-const isIntegerKey = (key) => isString(key) &&
-    key !== 'NaN' &&
-    key[0] !== '-' &&
-    '' + parseInt(key, 10) === key;
-const isReservedProp = /*#__PURE__*/ makeMap(
-// the leading comma is intentional so empty string "" is also included
-',key,ref,ref_for,ref_key,' +
-    'onVnodeBeforeMount,onVnodeMounted,' +
-    'onVnodeBeforeUpdate,onVnodeUpdated,' +
-    'onVnodeBeforeUnmount,onVnodeUnmounted');
-const isBuiltInDirective = /*#__PURE__*/ makeMap('bind,cloak,else-if,else,for,html,if,model,on,once,pre,show,slot,text,memo');
-const cacheStringFunction = (fn) => {
-    const cache = Object.create(null);
-    return ((str) => {
-        const hit = cache[str];
-        return hit || (cache[str] = fn(str));
-    });
-};
-const camelizeRE = /-(\w)/g;
-/**
- * @private
- */
-const camelize = cacheStringFunction((str) => {
-    return str.replace(camelizeRE, (_, c) => (c ? c.toUpperCase() : ''));
-});
-const hyphenateRE = /\B([A-Z])/g;
-/**
- * @private
- */
-const hyphenate = cacheStringFunction((str) => str.replace(hyphenateRE, '-$1').toLowerCase());
-/**
- * @private
- */
-const capitalize = cacheStringFunction((str) => str.charAt(0).toUpperCase() + str.slice(1));
-/**
- * @private
- */
-const toHandlerKey = cacheStringFunction((str) => str ? `on${capitalize(str)}` : ``);
-// compare whether a value has changed, accounting for NaN.
-const hasChanged = (value, oldValue) => !Object.is(value, oldValue);
-const invokeArrayFns = (fns, arg) => {
-    for (let i = 0; i < fns.length; i++) {
-        fns[i](arg);
-    }
-};
-const def = (obj, key, value) => {
-    Object.defineProperty(obj, key, {
-        configurable: true,
-        enumerable: false,
-        value
-    });
-};
-const toNumber = (val) => {
-    const n = parseFloat(val);
-    return isNaN(n) ? val : n;
-};
-let _globalThis;
-const getGlobalThis = () => {
-    return (_globalThis ||
-        (_globalThis =
-            typeof globalThis !== 'undefined'
-                ? globalThis
-                : typeof self !== 'undefined'
-                    ? self
-                    : typeof window !== 'undefined'
-                        ? window
-                        : typeof __webpack_require__.g !== 'undefined'
-                            ? __webpack_require__.g
-                            : {}));
-};
-const identRE = /^[_$a-zA-Z\xA0-\uFFFF][_$a-zA-Z0-9\xA0-\uFFFF]*$/;
-function genPropsAccessExp(name) {
-    return identRE.test(name)
-        ? `__props.${name}`
-        : `__props[${JSON.stringify(name)}]`;
 }
 
 
@@ -17004,6 +15133,7 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony export */   "Transition": () => (/* binding */ Transition),
 /* harmony export */   "TransitionGroup": () => (/* binding */ TransitionGroup),
 /* harmony export */   "VueElement": () => (/* binding */ VueElement),
+/* harmony export */   "assertNumber": () => (/* reexport safe */ _vue_runtime_core__WEBPACK_IMPORTED_MODULE_0__.assertNumber),
 /* harmony export */   "callWithAsyncErrorHandling": () => (/* reexport safe */ _vue_runtime_core__WEBPACK_IMPORTED_MODULE_0__.callWithAsyncErrorHandling),
 /* harmony export */   "callWithErrorHandling": () => (/* reexport safe */ _vue_runtime_core__WEBPACK_IMPORTED_MODULE_0__.callWithErrorHandling),
 /* harmony export */   "camelize": () => (/* reexport safe */ _vue_runtime_core__WEBPACK_IMPORTED_MODULE_0__.camelize),
@@ -17136,10 +15266,9 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony export */   "withModifiers": () => (/* binding */ withModifiers),
 /* harmony export */   "withScopeId": () => (/* reexport safe */ _vue_runtime_core__WEBPACK_IMPORTED_MODULE_0__.withScopeId)
 /* harmony export */ });
-/* harmony import */ var _vue_runtime_core__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! @vue/runtime-core */ "./node_modules/@vue/runtime-core/node_modules/@vue/shared/dist/shared.esm-bundler.js");
 /* harmony import */ var _vue_runtime_core__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! @vue/runtime-core */ "./node_modules/@vue/runtime-core/dist/runtime-core.esm-bundler.js");
-/* harmony import */ var _vue_runtime_core__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! @vue/runtime-core */ "./node_modules/@vue/runtime-core/node_modules/@vue/reactivity/dist/reactivity.esm-bundler.js");
-/* harmony import */ var _vue_shared__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! @vue/shared */ "./node_modules/@vue/runtime-dom/node_modules/@vue/shared/dist/shared.esm-bundler.js");
+/* harmony import */ var _vue_shared__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! @vue/shared */ "./node_modules/@vue/shared/dist/shared.esm-bundler.js");
+/* harmony import */ var _vue_runtime_core__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! @vue/runtime-core */ "./node_modules/@vue/runtime-core/node_modules/@vue/reactivity/dist/reactivity.esm-bundler.js");
 
 
 
@@ -17246,15 +15375,15 @@ function patchStyle(el, prev, next) {
     const style = el.style;
     const isCssString = (0,_vue_shared__WEBPACK_IMPORTED_MODULE_1__.isString)(next);
     if (next && !isCssString) {
-        for (const key in next) {
-            setStyle(style, key, next[key]);
-        }
         if (prev && !(0,_vue_shared__WEBPACK_IMPORTED_MODULE_1__.isString)(prev)) {
             for (const key in prev) {
                 if (next[key] == null) {
                     setStyle(style, key, '');
                 }
             }
+        }
+        for (const key in next) {
+            setStyle(style, key, next[key]);
         }
     }
     else {
@@ -17275,6 +15404,7 @@ function patchStyle(el, prev, next) {
         }
     }
 }
+const semicolonRE = /[^\\];\s*$/;
 const importantRE = /\s*!important$/;
 function setStyle(style, name, val) {
     if ((0,_vue_shared__WEBPACK_IMPORTED_MODULE_1__.isArray)(val)) {
@@ -17283,6 +15413,11 @@ function setStyle(style, name, val) {
     else {
         if (val == null)
             val = '';
+        if ((true)) {
+            if (semicolonRE.test(val)) {
+                (0,_vue_runtime_core__WEBPACK_IMPORTED_MODULE_0__.warn)(`Unexpected semicolon at the end of '${name}' style value: '${val}'`);
+            }
+        }
         if (name.startsWith('--')) {
             // custom property definition
             style.setProperty(name, val);
@@ -17306,7 +15441,7 @@ function autoPrefix(style, rawName) {
     if (cached) {
         return cached;
     }
-    let name = (0,_vue_runtime_core__WEBPACK_IMPORTED_MODULE_2__.camelize)(rawName);
+    let name = (0,_vue_shared__WEBPACK_IMPORTED_MODULE_1__.camelize)(rawName);
     if (name !== 'filter' && name in style) {
         return (prefixCache[rawName] = name);
     }
@@ -17612,12 +15747,21 @@ class VueElement extends BaseClass {
                     `defined as hydratable. Use \`defineSSRCustomElement\`.`);
             }
             this.attachShadow({ mode: 'open' });
+            if (!this._def.__asyncLoader) {
+                // for sync component defs we can immediately resolve props
+                this._resolveProps(this._def);
+            }
         }
     }
     connectedCallback() {
         this._connected = true;
         if (!this._instance) {
-            this._resolveDef();
+            if (this._resolved) {
+                this._update();
+            }
+            else {
+                this._resolveDef();
+            }
         }
     }
     disconnectedCallback() {
@@ -17633,9 +15777,6 @@ class VueElement extends BaseClass {
      * resolve inner component definition (handle possible async component)
      */
     _resolveDef() {
-        if (this._resolved) {
-            return;
-        }
         this._resolved = true;
         // set initial attrs
         for (let i = 0; i < this.attributes.length; i++) {
@@ -17647,38 +15788,26 @@ class VueElement extends BaseClass {
                 this._setAttr(m.attributeName);
             }
         }).observe(this, { attributes: true });
-        const resolve = (def) => {
+        const resolve = (def, isAsync = false) => {
             const { props, styles } = def;
-            const hasOptions = !(0,_vue_shared__WEBPACK_IMPORTED_MODULE_1__.isArray)(props);
-            const rawKeys = props ? (hasOptions ? Object.keys(props) : props) : [];
             // cast Number-type props set before resolve
             let numberProps;
-            if (hasOptions) {
-                for (const key in this._props) {
+            if (props && !(0,_vue_shared__WEBPACK_IMPORTED_MODULE_1__.isArray)(props)) {
+                for (const key in props) {
                     const opt = props[key];
                     if (opt === Number || (opt && opt.type === Number)) {
-                        this._props[key] = (0,_vue_shared__WEBPACK_IMPORTED_MODULE_1__.toNumber)(this._props[key]);
-                        (numberProps || (numberProps = Object.create(null)))[key] = true;
+                        if (key in this._props) {
+                            this._props[key] = (0,_vue_shared__WEBPACK_IMPORTED_MODULE_1__.toNumber)(this._props[key]);
+                        }
+                        (numberProps || (numberProps = Object.create(null)))[(0,_vue_shared__WEBPACK_IMPORTED_MODULE_1__.camelize)(key)] = true;
                     }
                 }
             }
             this._numberProps = numberProps;
-            // check if there are props set pre-upgrade or connect
-            for (const key of Object.keys(this)) {
-                if (key[0] !== '_') {
-                    this._setProp(key, this[key], true, false);
-                }
-            }
-            // defining getter/setters on prototype
-            for (const key of rawKeys.map(_vue_shared__WEBPACK_IMPORTED_MODULE_1__.camelize)) {
-                Object.defineProperty(this, key, {
-                    get() {
-                        return this._getProp(key);
-                    },
-                    set(val) {
-                        this._setProp(key, val);
-                    }
-                });
+            if (isAsync) {
+                // defining getter/setters on prototype
+                // for sync defs, this already happened in the constructor
+                this._resolveProps(def);
             }
             // apply CSS
             this._applyStyles(styles);
@@ -17687,18 +15816,40 @@ class VueElement extends BaseClass {
         };
         const asyncDef = this._def.__asyncLoader;
         if (asyncDef) {
-            asyncDef().then(resolve);
+            asyncDef().then(def => resolve(def, true));
         }
         else {
             resolve(this._def);
         }
     }
+    _resolveProps(def) {
+        const { props } = def;
+        const declaredPropKeys = (0,_vue_shared__WEBPACK_IMPORTED_MODULE_1__.isArray)(props) ? props : Object.keys(props || {});
+        // check if there are props set pre-upgrade or connect
+        for (const key of Object.keys(this)) {
+            if (key[0] !== '_' && declaredPropKeys.includes(key)) {
+                this._setProp(key, this[key], true, false);
+            }
+        }
+        // defining getter/setters on prototype
+        for (const key of declaredPropKeys.map(_vue_shared__WEBPACK_IMPORTED_MODULE_1__.camelize)) {
+            Object.defineProperty(this, key, {
+                get() {
+                    return this._getProp(key);
+                },
+                set(val) {
+                    this._setProp(key, val);
+                }
+            });
+        }
+    }
     _setAttr(key) {
         let value = this.getAttribute(key);
-        if (this._numberProps && this._numberProps[key]) {
+        const camelKey = (0,_vue_shared__WEBPACK_IMPORTED_MODULE_1__.camelize)(key);
+        if (this._numberProps && this._numberProps[camelKey]) {
             value = (0,_vue_shared__WEBPACK_IMPORTED_MODULE_1__.toNumber)(value);
         }
-        this._setProp((0,_vue_shared__WEBPACK_IMPORTED_MODULE_1__.camelize)(key), value, false);
+        this._setProp(camelKey, value, false);
     }
     /**
      * @internal
@@ -17747,20 +15898,23 @@ class VueElement extends BaseClass {
                             this._styles.length = 0;
                         }
                         this._applyStyles(newStyles);
-                        // if this is an async component, ceReload is called from the inner
-                        // component so no need to reload the async wrapper
-                        if (!this._def.__asyncLoader) {
-                            // reload
-                            this._instance = null;
-                            this._update();
-                        }
+                        this._instance = null;
+                        this._update();
                     };
                 }
-                // intercept emit
-                instance.emit = (event, ...args) => {
+                const dispatch = (event, args) => {
                     this.dispatchEvent(new CustomEvent(event, {
                         detail: args
                     }));
+                };
+                // intercept emit
+                instance.emit = (event, ...args) => {
+                    // dispatch both the raw and hyphenated versions of an event
+                    // to match Vue behavior
+                    dispatch(event, args);
+                    if ((0,_vue_shared__WEBPACK_IMPORTED_MODULE_1__.hyphenate)(event) !== event) {
+                        dispatch((0,_vue_shared__WEBPACK_IMPORTED_MODULE_1__.hyphenate)(event), args);
+                    }
                 };
                 // locate nearest Vue custom element parent for provide/inject
                 let parent = this;
@@ -17768,6 +15922,7 @@ class VueElement extends BaseClass {
                     parent && (parent.parentNode || parent.host))) {
                     if (parent instanceof VueElement) {
                         instance.parent = parent._instance;
+                        instance.provides = parent._instance.provides;
                         break;
                     }
                 }
@@ -17825,7 +15980,14 @@ function useCssVars(getter) {
             (0,_vue_runtime_core__WEBPACK_IMPORTED_MODULE_0__.warn)(`useCssVars is called without current active component instance.`);
         return;
     }
-    const setVars = () => setVarsOnVNode(instance.subTree, getter(instance.proxy));
+    const updateTeleports = (instance.ut = (vars = getter(instance.proxy)) => {
+        Array.from(document.querySelectorAll(`[data-v-owner="${instance.uid}"]`)).forEach(node => setVarsOnNode(node, vars));
+    });
+    const setVars = () => {
+        const vars = getter(instance.proxy);
+        setVarsOnVNode(instance.subTree, vars);
+        updateTeleports(vars);
+    };
     (0,_vue_runtime_core__WEBPACK_IMPORTED_MODULE_0__.watchPostEffect)(setVars);
     (0,_vue_runtime_core__WEBPACK_IMPORTED_MODULE_0__.onMounted)(() => {
         const ob = new MutationObserver(setVars);
@@ -18023,19 +16185,10 @@ function normalizeDuration(duration) {
 }
 function NumberOf(val) {
     const res = (0,_vue_shared__WEBPACK_IMPORTED_MODULE_1__.toNumber)(val);
-    if ((true))
-        validateDuration(res);
+    if ((true)) {
+        (0,_vue_runtime_core__WEBPACK_IMPORTED_MODULE_0__.assertNumber)(res, '<transition> explicit duration');
+    }
     return res;
-}
-function validateDuration(val) {
-    if (typeof val !== 'number') {
-        (0,_vue_runtime_core__WEBPACK_IMPORTED_MODULE_0__.warn)(`<transition> explicit duration is not a valid number - ` +
-            `got ${JSON.stringify(val)}.`);
-    }
-    else if (isNaN(val)) {
-        (0,_vue_runtime_core__WEBPACK_IMPORTED_MODULE_0__.warn)(`<transition> explicit duration is NaN - ` +
-            'the duration expression might be incorrect.');
-    }
 }
 function addTransitionClass(el, cls) {
     cls.split(/\s+/).forEach(c => c && el.classList.add(c));
@@ -18094,11 +16247,11 @@ function getTransitionInfo(el, expectedType) {
     const styles = window.getComputedStyle(el);
     // JSDOM may return undefined for transition properties
     const getStyleProperties = (key) => (styles[key] || '').split(', ');
-    const transitionDelays = getStyleProperties(TRANSITION + 'Delay');
-    const transitionDurations = getStyleProperties(TRANSITION + 'Duration');
+    const transitionDelays = getStyleProperties(`${TRANSITION}Delay`);
+    const transitionDurations = getStyleProperties(`${TRANSITION}Duration`);
     const transitionTimeout = getTimeout(transitionDelays, transitionDurations);
-    const animationDelays = getStyleProperties(ANIMATION + 'Delay');
-    const animationDurations = getStyleProperties(ANIMATION + 'Duration');
+    const animationDelays = getStyleProperties(`${ANIMATION}Delay`);
+    const animationDurations = getStyleProperties(`${ANIMATION}Duration`);
     const animationTimeout = getTimeout(animationDelays, animationDurations);
     let type = null;
     let timeout = 0;
@@ -18133,7 +16286,7 @@ function getTransitionInfo(el, expectedType) {
             : 0;
     }
     const hasTransform = type === TRANSITION &&
-        /\b(transform|all)(,|$)/.test(styles[TRANSITION + 'Property']);
+        /\b(transform|all)(,|$)/.test(getStyleProperties(`${TRANSITION}Property`).toString());
     return {
         type,
         timeout,
@@ -18207,7 +16360,7 @@ const TransitionGroupImpl = {
             });
         });
         return () => {
-            const rawProps = (0,_vue_runtime_core__WEBPACK_IMPORTED_MODULE_3__.toRaw)(props);
+            const rawProps = (0,_vue_runtime_core__WEBPACK_IMPORTED_MODULE_2__.toRaw)(props);
             const cssTransitionProps = resolveTransitionProps(rawProps);
             let tag = rawProps.tag || _vue_runtime_core__WEBPACK_IMPORTED_MODULE_0__.Fragment;
             prevChildren = children;
@@ -18232,6 +16385,14 @@ const TransitionGroupImpl = {
         };
     }
 };
+/**
+ * TransitionGroup does not support "mode" so we need to remove it from the
+ * props declarations, but direct delete operation is considered a side effect
+ * and will make the entire transition feature non-tree-shakeable, so we do it
+ * in a function and mark the function's invocation as pure.
+ */
+const removeMode = (props) => delete props.mode;
+/*#__PURE__*/ removeMode(TransitionGroupImpl.props);
 const TransitionGroup = TransitionGroupImpl;
 function callPendingCbs(c) {
     const el = c.el;
@@ -18307,7 +16468,7 @@ const vModelText = {
                 domValue = domValue.trim();
             }
             if (castToNumber) {
-                domValue = (0,_vue_shared__WEBPACK_IMPORTED_MODULE_1__.toNumber)(domValue);
+                domValue = (0,_vue_shared__WEBPACK_IMPORTED_MODULE_1__.looseToNumber)(domValue);
             }
             el._assign(domValue);
         });
@@ -18342,7 +16503,8 @@ const vModelText = {
             if (trim && el.value.trim() === value) {
                 return;
             }
-            if ((number || el.type === 'number') && (0,_vue_shared__WEBPACK_IMPORTED_MODULE_1__.toNumber)(el.value) === value) {
+            if ((number || el.type === 'number') &&
+                (0,_vue_shared__WEBPACK_IMPORTED_MODULE_1__.looseToNumber)(el.value) === value) {
                 return;
             }
         }
@@ -18431,7 +16593,7 @@ const vModelSelect = {
         addEventListener(el, 'change', () => {
             const selectedVal = Array.prototype.filter
                 .call(el.options, (o) => o.selected)
-                .map((o) => number ? (0,_vue_shared__WEBPACK_IMPORTED_MODULE_1__.toNumber)(getValue(o)) : getValue(o));
+                .map((o) => number ? (0,_vue_shared__WEBPACK_IMPORTED_MODULE_1__.looseToNumber)(getValue(o)) : getValue(o));
             el._assign(el.multiple
                 ? isSetModel
                     ? new Set(selectedVal)
@@ -18811,10 +16973,10 @@ const initDirectivesForSSR = () => {
 
 /***/ }),
 
-/***/ "./node_modules/@vue/runtime-dom/node_modules/@vue/shared/dist/shared.esm-bundler.js":
-/*!*******************************************************************************************!*\
-  !*** ./node_modules/@vue/runtime-dom/node_modules/@vue/shared/dist/shared.esm-bundler.js ***!
-  \*******************************************************************************************/
+/***/ "./node_modules/@vue/shared/dist/shared.esm-bundler.js":
+/*!*************************************************************!*\
+  !*** ./node_modules/@vue/shared/dist/shared.esm-bundler.js ***!
+  \*************************************************************/
 /***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
 
 "use strict";
@@ -18851,11 +17013,11 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony export */   "isKnownSvgAttr": () => (/* binding */ isKnownSvgAttr),
 /* harmony export */   "isMap": () => (/* binding */ isMap),
 /* harmony export */   "isModelListener": () => (/* binding */ isModelListener),
-/* harmony export */   "isNoUnitNumericStyleProp": () => (/* binding */ isNoUnitNumericStyleProp),
 /* harmony export */   "isObject": () => (/* binding */ isObject),
 /* harmony export */   "isOn": () => (/* binding */ isOn),
 /* harmony export */   "isPlainObject": () => (/* binding */ isPlainObject),
 /* harmony export */   "isPromise": () => (/* binding */ isPromise),
+/* harmony export */   "isRegExp": () => (/* binding */ isRegExp),
 /* harmony export */   "isReservedProp": () => (/* binding */ isReservedProp),
 /* harmony export */   "isSSRSafeAttrName": () => (/* binding */ isSSRSafeAttrName),
 /* harmony export */   "isSVGTag": () => (/* binding */ isSVGTag),
@@ -18866,6 +17028,7 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony export */   "isVoidTag": () => (/* binding */ isVoidTag),
 /* harmony export */   "looseEqual": () => (/* binding */ looseEqual),
 /* harmony export */   "looseIndexOf": () => (/* binding */ looseIndexOf),
+/* harmony export */   "looseToNumber": () => (/* binding */ looseToNumber),
 /* harmony export */   "makeMap": () => (/* binding */ makeMap),
 /* harmony export */   "normalizeClass": () => (/* binding */ normalizeClass),
 /* harmony export */   "normalizeProps": () => (/* binding */ normalizeProps),
@@ -18976,6 +17139,134 @@ function generateCodeFrame(source, start = 0, end = source.length) {
     return res.join('\n');
 }
 
+function normalizeStyle(value) {
+    if (isArray(value)) {
+        const res = {};
+        for (let i = 0; i < value.length; i++) {
+            const item = value[i];
+            const normalized = isString(item)
+                ? parseStringStyle(item)
+                : normalizeStyle(item);
+            if (normalized) {
+                for (const key in normalized) {
+                    res[key] = normalized[key];
+                }
+            }
+        }
+        return res;
+    }
+    else if (isString(value)) {
+        return value;
+    }
+    else if (isObject(value)) {
+        return value;
+    }
+}
+const listDelimiterRE = /;(?![^(]*\))/g;
+const propertyDelimiterRE = /:([^]+)/;
+const styleCommentRE = /\/\*.*?\*\//gs;
+function parseStringStyle(cssText) {
+    const ret = {};
+    cssText
+        .replace(styleCommentRE, '')
+        .split(listDelimiterRE)
+        .forEach(item => {
+        if (item) {
+            const tmp = item.split(propertyDelimiterRE);
+            tmp.length > 1 && (ret[tmp[0].trim()] = tmp[1].trim());
+        }
+    });
+    return ret;
+}
+function stringifyStyle(styles) {
+    let ret = '';
+    if (!styles || isString(styles)) {
+        return ret;
+    }
+    for (const key in styles) {
+        const value = styles[key];
+        const normalizedKey = key.startsWith(`--`) ? key : hyphenate(key);
+        if (isString(value) || typeof value === 'number') {
+            // only render valid values
+            ret += `${normalizedKey}:${value};`;
+        }
+    }
+    return ret;
+}
+function normalizeClass(value) {
+    let res = '';
+    if (isString(value)) {
+        res = value;
+    }
+    else if (isArray(value)) {
+        for (let i = 0; i < value.length; i++) {
+            const normalized = normalizeClass(value[i]);
+            if (normalized) {
+                res += normalized + ' ';
+            }
+        }
+    }
+    else if (isObject(value)) {
+        for (const name in value) {
+            if (value[name]) {
+                res += name + ' ';
+            }
+        }
+    }
+    return res.trim();
+}
+function normalizeProps(props) {
+    if (!props)
+        return null;
+    let { class: klass, style } = props;
+    if (klass && !isString(klass)) {
+        props.class = normalizeClass(klass);
+    }
+    if (style) {
+        props.style = normalizeStyle(style);
+    }
+    return props;
+}
+
+// These tag configs are shared between compiler-dom and runtime-dom, so they
+// https://developer.mozilla.org/en-US/docs/Web/HTML/Element
+const HTML_TAGS = 'html,body,base,head,link,meta,style,title,address,article,aside,footer,' +
+    'header,hgroup,h1,h2,h3,h4,h5,h6,nav,section,div,dd,dl,dt,figcaption,' +
+    'figure,picture,hr,img,li,main,ol,p,pre,ul,a,b,abbr,bdi,bdo,br,cite,code,' +
+    'data,dfn,em,i,kbd,mark,q,rp,rt,ruby,s,samp,small,span,strong,sub,sup,' +
+    'time,u,var,wbr,area,audio,map,track,video,embed,object,param,source,' +
+    'canvas,script,noscript,del,ins,caption,col,colgroup,table,thead,tbody,td,' +
+    'th,tr,button,datalist,fieldset,form,input,label,legend,meter,optgroup,' +
+    'option,output,progress,select,textarea,details,dialog,menu,' +
+    'summary,template,blockquote,iframe,tfoot';
+// https://developer.mozilla.org/en-US/docs/Web/SVG/Element
+const SVG_TAGS = 'svg,animate,animateMotion,animateTransform,circle,clipPath,color-profile,' +
+    'defs,desc,discard,ellipse,feBlend,feColorMatrix,feComponentTransfer,' +
+    'feComposite,feConvolveMatrix,feDiffuseLighting,feDisplacementMap,' +
+    'feDistantLight,feDropShadow,feFlood,feFuncA,feFuncB,feFuncG,feFuncR,' +
+    'feGaussianBlur,feImage,feMerge,feMergeNode,feMorphology,feOffset,' +
+    'fePointLight,feSpecularLighting,feSpotLight,feTile,feTurbulence,filter,' +
+    'foreignObject,g,hatch,hatchpath,image,line,linearGradient,marker,mask,' +
+    'mesh,meshgradient,meshpatch,meshrow,metadata,mpath,path,pattern,' +
+    'polygon,polyline,radialGradient,rect,set,solidcolor,stop,switch,symbol,' +
+    'text,textPath,title,tspan,unknown,use,view';
+const VOID_TAGS = 'area,base,br,col,embed,hr,img,input,link,meta,param,source,track,wbr';
+/**
+ * Compiler only.
+ * Do NOT use in runtime code paths unless behind `(process.env.NODE_ENV !== 'production')` flag.
+ */
+const isHTMLTag = /*#__PURE__*/ makeMap(HTML_TAGS);
+/**
+ * Compiler only.
+ * Do NOT use in runtime code paths unless behind `(process.env.NODE_ENV !== 'production')` flag.
+ */
+const isSVGTag = /*#__PURE__*/ makeMap(SVG_TAGS);
+/**
+ * Compiler only.
+ * Do NOT use in runtime code paths unless behind `(process.env.NODE_ENV !== 'production')` flag.
+ */
+const isVoidTag = /*#__PURE__*/ makeMap(VOID_TAGS);
+
 /**
  * On the client we only need to offer special cases for boolean attributes that
  * have different names from their corresponding dom properties:
@@ -19021,18 +17312,6 @@ const propsToAttrMap = {
     htmlFor: 'for',
     httpEquiv: 'http-equiv'
 };
-/**
- * CSS properties that accept plain numbers
- */
-const isNoUnitNumericStyleProp = /*#__PURE__*/ makeMap(`animation-iteration-count,border-image-outset,border-image-slice,` +
-    `border-image-width,box-flex,box-flex-group,box-ordinal-group,column-count,` +
-    `columns,flex,flex-grow,flex-positive,flex-shrink,flex-negative,flex-order,` +
-    `grid-row,grid-row-end,grid-row-span,grid-row-start,grid-column,` +
-    `grid-column-end,grid-column-span,grid-column-start,font-weight,line-clamp,` +
-    `line-height,opacity,order,orphans,tab-size,widows,z-index,zoom,` +
-    // SVG
-    `fill-opacity,flood-opacity,stop-opacity,stroke-dasharray,stroke-dashoffset,` +
-    `stroke-miterlimit,stroke-opacity,stroke-width`);
 /**
  * Known attributes, this is used for stringification of runtime static nodes
  * so that we don't stringify bindings that cannot be set from HTML.
@@ -19096,131 +17375,6 @@ const isKnownSvgAttr = /*#__PURE__*/ makeMap(`xmlns,accent-height,accumulate,add
     `writing-mode,x,x-height,x1,x2,xChannelSelector,xlink:actuate,xlink:arcrole,` +
     `xlink:href,xlink:role,xlink:show,xlink:title,xlink:type,xml:base,xml:lang,` +
     `xml:space,y,y1,y2,yChannelSelector,z,zoomAndPan`);
-
-function normalizeStyle(value) {
-    if (isArray(value)) {
-        const res = {};
-        for (let i = 0; i < value.length; i++) {
-            const item = value[i];
-            const normalized = isString(item)
-                ? parseStringStyle(item)
-                : normalizeStyle(item);
-            if (normalized) {
-                for (const key in normalized) {
-                    res[key] = normalized[key];
-                }
-            }
-        }
-        return res;
-    }
-    else if (isString(value)) {
-        return value;
-    }
-    else if (isObject(value)) {
-        return value;
-    }
-}
-const listDelimiterRE = /;(?![^(]*\))/g;
-const propertyDelimiterRE = /:(.+)/;
-function parseStringStyle(cssText) {
-    const ret = {};
-    cssText.split(listDelimiterRE).forEach(item => {
-        if (item) {
-            const tmp = item.split(propertyDelimiterRE);
-            tmp.length > 1 && (ret[tmp[0].trim()] = tmp[1].trim());
-        }
-    });
-    return ret;
-}
-function stringifyStyle(styles) {
-    let ret = '';
-    if (!styles || isString(styles)) {
-        return ret;
-    }
-    for (const key in styles) {
-        const value = styles[key];
-        const normalizedKey = key.startsWith(`--`) ? key : hyphenate(key);
-        if (isString(value) ||
-            (typeof value === 'number' && isNoUnitNumericStyleProp(normalizedKey))) {
-            // only render valid values
-            ret += `${normalizedKey}:${value};`;
-        }
-    }
-    return ret;
-}
-function normalizeClass(value) {
-    let res = '';
-    if (isString(value)) {
-        res = value;
-    }
-    else if (isArray(value)) {
-        for (let i = 0; i < value.length; i++) {
-            const normalized = normalizeClass(value[i]);
-            if (normalized) {
-                res += normalized + ' ';
-            }
-        }
-    }
-    else if (isObject(value)) {
-        for (const name in value) {
-            if (value[name]) {
-                res += name + ' ';
-            }
-        }
-    }
-    return res.trim();
-}
-function normalizeProps(props) {
-    if (!props)
-        return null;
-    let { class: klass, style } = props;
-    if (klass && !isString(klass)) {
-        props.class = normalizeClass(klass);
-    }
-    if (style) {
-        props.style = normalizeStyle(style);
-    }
-    return props;
-}
-
-// These tag configs are shared between compiler-dom and runtime-dom, so they
-// https://developer.mozilla.org/en-US/docs/Web/HTML/Element
-const HTML_TAGS = 'html,body,base,head,link,meta,style,title,address,article,aside,footer,' +
-    'header,h1,h2,h3,h4,h5,h6,nav,section,div,dd,dl,dt,figcaption,' +
-    'figure,picture,hr,img,li,main,ol,p,pre,ul,a,b,abbr,bdi,bdo,br,cite,code,' +
-    'data,dfn,em,i,kbd,mark,q,rp,rt,ruby,s,samp,small,span,strong,sub,sup,' +
-    'time,u,var,wbr,area,audio,map,track,video,embed,object,param,source,' +
-    'canvas,script,noscript,del,ins,caption,col,colgroup,table,thead,tbody,td,' +
-    'th,tr,button,datalist,fieldset,form,input,label,legend,meter,optgroup,' +
-    'option,output,progress,select,textarea,details,dialog,menu,' +
-    'summary,template,blockquote,iframe,tfoot';
-// https://developer.mozilla.org/en-US/docs/Web/SVG/Element
-const SVG_TAGS = 'svg,animate,animateMotion,animateTransform,circle,clipPath,color-profile,' +
-    'defs,desc,discard,ellipse,feBlend,feColorMatrix,feComponentTransfer,' +
-    'feComposite,feConvolveMatrix,feDiffuseLighting,feDisplacementMap,' +
-    'feDistanceLight,feDropShadow,feFlood,feFuncA,feFuncB,feFuncG,feFuncR,' +
-    'feGaussianBlur,feImage,feMerge,feMergeNode,feMorphology,feOffset,' +
-    'fePointLight,feSpecularLighting,feSpotLight,feTile,feTurbulence,filter,' +
-    'foreignObject,g,hatch,hatchpath,image,line,linearGradient,marker,mask,' +
-    'mesh,meshgradient,meshpatch,meshrow,metadata,mpath,path,pattern,' +
-    'polygon,polyline,radialGradient,rect,set,solidcolor,stop,switch,symbol,' +
-    'text,textPath,title,tspan,unknown,use,view';
-const VOID_TAGS = 'area,base,br,col,embed,hr,img,input,link,meta,param,source,track,wbr';
-/**
- * Compiler only.
- * Do NOT use in runtime code paths unless behind `(process.env.NODE_ENV !== 'production')` flag.
- */
-const isHTMLTag = /*#__PURE__*/ makeMap(HTML_TAGS);
-/**
- * Compiler only.
- * Do NOT use in runtime code paths unless behind `(process.env.NODE_ENV !== 'production')` flag.
- */
-const isSVGTag = /*#__PURE__*/ makeMap(SVG_TAGS);
-/**
- * Compiler only.
- * Do NOT use in runtime code paths unless behind `(process.env.NODE_ENV !== 'production')` flag.
- */
-const isVoidTag = /*#__PURE__*/ makeMap(VOID_TAGS);
 
 const escapeRE = /["'&<>]/;
 function escapeHtml(string) {
@@ -19386,6 +17540,7 @@ const isArray = Array.isArray;
 const isMap = (val) => toTypeString(val) === '[object Map]';
 const isSet = (val) => toTypeString(val) === '[object Set]';
 const isDate = (val) => toTypeString(val) === '[object Date]';
+const isRegExp = (val) => toTypeString(val) === '[object RegExp]';
 const isFunction = (val) => typeof val === 'function';
 const isString = (val) => typeof val === 'string';
 const isSymbol = (val) => typeof val === 'symbol';
@@ -19452,8 +17607,20 @@ const def = (obj, key, value) => {
         value
     });
 };
-const toNumber = (val) => {
+/**
+ * "123-foo" will be parsed to 123
+ * This is used for the .number modifier in v-model
+ */
+const looseToNumber = (val) => {
     const n = parseFloat(val);
+    return isNaN(n) ? val : n;
+};
+/**
+ * Only conerces number-like strings
+ * "123-foo" will be returned as-is
+ */
+const toNumber = (val) => {
+    const n = isString(val) ? Number(val) : NaN;
     return isNaN(n) ? val : n;
 };
 let _globalThis;
@@ -19497,6 +17664,7 @@ __webpack_require__.r(__webpack_exports__);
 var flushPending = false;
 var flushing = false;
 var queue = [];
+var lastFlushedIndex = -1;
 function scheduler(callback) {
   queueJob(callback);
 }
@@ -19507,7 +17675,7 @@ function queueJob(job) {
 }
 function dequeueJob(job) {
   let index = queue.indexOf(job);
-  if (index !== -1)
+  if (index !== -1 && index > lastFlushedIndex)
     queue.splice(index, 1);
 }
 function queueFlush() {
@@ -19521,8 +17689,10 @@ function flushJobs() {
   flushing = true;
   for (let i = 0; i < queue.length; i++) {
     queue[i]();
+    lastFlushedIndex = i;
   }
   queue.length = 0;
+  lastFlushedIndex = -1;
   flushing = false;
 }
 
@@ -19540,13 +17710,13 @@ function disableEffectScheduling(callback) {
 function setReactivityEngine(engine) {
   reactive = engine.reactive;
   release = engine.release;
-  effect = (callback) => engine.effect(callback, {scheduler: (task) => {
+  effect = (callback) => engine.effect(callback, { scheduler: (task) => {
     if (shouldSchedule) {
       scheduler(task);
     } else {
       task();
     }
-  }});
+  } });
   raw = engine.raw;
 }
 function overrideEffect(override) {
@@ -19558,7 +17728,7 @@ function elementBoundEffect(el) {
   let wrappedEffect = (callback) => {
     let effectReference = effect(callback);
     if (!el._x_effects) {
-      el._x_effects = new Set();
+      el._x_effects = /* @__PURE__ */ new Set();
       el._x_runEffects = () => {
         el._x_effects.forEach((i) => i());
       };
@@ -19617,7 +17787,7 @@ function cleanupAttributes(el, names) {
 var observer = new MutationObserver(onMutate);
 var currentlyObserving = false;
 function startObservingMutations() {
-  observer.observe(document, {subtree: true, childList: true, attributes: true, attributeOldValue: true});
+  observer.observe(document, { subtree: true, childList: true, attributes: true, attributeOldValue: true });
   currentlyObserving = true;
 }
 function stopObservingMutations() {
@@ -19666,8 +17836,8 @@ function onMutate(mutations) {
   }
   let addedNodes = [];
   let removedNodes = [];
-  let addedAttributes = new Map();
-  let removedAttributes = new Map();
+  let addedAttributes = /* @__PURE__ */ new Map();
+  let removedAttributes = /* @__PURE__ */ new Map();
   for (let i = 0; i < mutations.length; i++) {
     if (mutations[i].target._x_ignoreMutationObserver)
       continue;
@@ -19682,7 +17852,7 @@ function onMutate(mutations) {
       let add2 = () => {
         if (!addedAttributes.has(el))
           addedAttributes.set(el, []);
-        addedAttributes.get(el).push({name, value: el.getAttribute(name)});
+        addedAttributes.get(el).push({ name, value: el.getAttribute(name) });
       };
       let remove = () => {
         if (!removedAttributes.has(el))
@@ -19819,7 +17989,7 @@ function mergeProxies(objects) {
 function initInterceptors(data2) {
   let isObject2 = (val) => typeof val === "object" && !Array.isArray(val) && val !== null;
   let recurse = (obj, basePath = "") => {
-    Object.entries(Object.getOwnPropertyDescriptors(obj)).forEach(([key, {value, enumerable}]) => {
+    Object.entries(Object.getOwnPropertyDescriptors(obj)).forEach(([key, { value, enumerable }]) => {
       if (enumerable === false || value === void 0)
         return;
       let path = basePath === "" ? key : `${basePath}.${key}`;
@@ -19888,7 +18058,7 @@ function injectMagics(obj, el) {
     Object.defineProperty(obj, `$${name}`, {
       get() {
         let [utilities, cleanup2] = getElementBoundUtilities(el);
-        utilities = {interceptor, ...utilities};
+        utilities = { interceptor, ...utilities };
         onElRemoved(el, cleanup2);
         return callback(el, utilities);
       },
@@ -19907,7 +18077,7 @@ function tryCatch(el, expression, callback, ...args) {
   }
 }
 function handleError(error2, el, expression = void 0) {
-  Object.assign(error2, {el, expression});
+  Object.assign(error2, { el, expression });
   console.warn(`Alpine Expression Error: ${error2.message}
 
 ${expression ? 'Expression: "' + expression + '"\n\n' : ""}`, el);
@@ -19940,15 +18110,12 @@ function normalEvaluator(el, expression) {
   let overriddenMagics = {};
   injectMagics(overriddenMagics, el);
   let dataStack = [overriddenMagics, ...closestDataStack(el)];
-  if (typeof expression === "function") {
-    return generateEvaluatorFromFunction(dataStack, expression);
-  }
-  let evaluator = generateEvaluatorFromString(dataStack, expression, el);
+  let evaluator = typeof expression === "function" ? generateEvaluatorFromFunction(dataStack, expression) : generateEvaluatorFromString(dataStack, expression, el);
   return tryCatch.bind(null, el, expression, evaluator);
 }
 function generateEvaluatorFromFunction(dataStack, func) {
   return (receiver = () => {
-  }, {scope: scope2 = {}, params = []} = {}) => {
+  }, { scope: scope2 = {}, params = [] } = {}) => {
     let result = func.apply(mergeProxies([scope2, ...dataStack]), params);
     runIfTypeOfFunction(receiver, result);
   };
@@ -19960,7 +18127,7 @@ function generateFunctionFromString(expression, el) {
   }
   let AsyncFunction = Object.getPrototypeOf(async function() {
   }).constructor;
-  let rightSideSafeExpression = /^[\n\s]*if.*\(.*\)/.test(expression) || /^(let|const)\s/.test(expression) ? `(() => { ${expression} })()` : expression;
+  let rightSideSafeExpression = /^[\n\s]*if.*\(.*\)/.test(expression) || /^(let|const)\s/.test(expression) ? `(async()=>{ ${expression} })()` : expression;
   const safeAsyncFunction = () => {
     try {
       return new AsyncFunction(["__self", "scope"], `with (scope) { __self.result = ${rightSideSafeExpression} }; __self.finished = true; return __self.result;`);
@@ -19976,7 +18143,7 @@ function generateFunctionFromString(expression, el) {
 function generateEvaluatorFromString(dataStack, expression, el) {
   let func = generateFunctionFromString(expression, el);
   return (receiver = () => {
-  }, {scope: scope2 = {}, params = []} = {}) => {
+  }, { scope: scope2 = {}, params = [] } = {}) => {
     func.result = void 0;
     func.finished = false;
     let completeScope = mergeProxies([scope2, ...dataStack]);
@@ -20001,6 +18168,8 @@ function runIfTypeOfFunction(receiver, value, scope2, params, el) {
     } else {
       receiver(result);
     }
+  } else if (typeof value === "object" && value instanceof Promise) {
+    value.then((i) => receiver(i));
   } else {
     receiver(value);
   }
@@ -20017,11 +18186,23 @@ function setPrefix(newPrefix) {
 var directiveHandlers = {};
 function directive(name, callback) {
   directiveHandlers[name] = callback;
+  return {
+    before(directive2) {
+      if (!directiveHandlers[directive2]) {
+        console.warn(
+          "Cannot find directive `${directive}`. `${name}` will use the default order of execution"
+        );
+        return;
+      }
+      const pos = directiveOrder.indexOf(directive2);
+      directiveOrder.splice(pos >= 0 ? pos : directiveOrder.indexOf("DEFAULT"), 0, name);
+    }
+  };
 }
 function directives(el, attributes, originalAttributeOverride) {
   attributes = Array.from(attributes);
   if (el._x_virtualDirectives) {
-    let vAttributes = Object.entries(el._x_virtualDirectives).map(([name, value]) => ({name, value}));
+    let vAttributes = Object.entries(el._x_virtualDirectives).map(([name, value]) => ({ name, value }));
     let staticAttributes = attributesOnly(vAttributes);
     vAttributes = vAttributes.map((attribute) => {
       if (staticAttributes.find((attr) => attr.name === attribute.name)) {
@@ -20044,7 +18225,7 @@ function attributesOnly(attributes) {
   return Array.from(attributes).map(toTransformedAttributes()).filter((attr) => !outNonAlpineAttributes(attr));
 }
 var isDeferringHandlers = false;
-var directiveHandlerStacks = new Map();
+var directiveHandlerStacks = /* @__PURE__ */ new Map();
 var currentHandlerStackKey = Symbol();
 function deferHandlingDirectives(callback) {
   isDeferringHandlers = true;
@@ -20094,33 +18275,33 @@ function getDirectiveHandler(el, directive2) {
   fullHandler.runCleanups = cleanup2;
   return fullHandler;
 }
-var startingWith = (subject, replacement) => ({name, value}) => {
+var startingWith = (subject, replacement) => ({ name, value }) => {
   if (name.startsWith(subject))
     name = name.replace(subject, replacement);
-  return {name, value};
+  return { name, value };
 };
 var into = (i) => i;
 function toTransformedAttributes(callback = () => {
 }) {
-  return ({name, value}) => {
-    let {name: newName, value: newValue} = attributeTransformers.reduce((carry, transform) => {
+  return ({ name, value }) => {
+    let { name: newName, value: newValue } = attributeTransformers.reduce((carry, transform) => {
       return transform(carry);
-    }, {name, value});
+    }, { name, value });
     if (newName !== name)
       callback(newName, name);
-    return {name: newName, value: newValue};
+    return { name: newName, value: newValue };
   };
 }
 var attributeTransformers = [];
 function mapAttributes(callback) {
   attributeTransformers.push(callback);
 }
-function outNonAlpineAttributes({name}) {
+function outNonAlpineAttributes({ name }) {
   return alpineAttributeRegex().test(name);
 }
 var alpineAttributeRegex = () => new RegExp(`^${prefixAsString}([^:^.]+)\\b`);
 function toParsedDirectives(transformedAttributeMap, originalAttributeOverride) {
-  return ({name, value}) => {
+  return ({ name, value }) => {
     let typeMatch = name.match(alpineAttributeRegex());
     let valueMatch = name.match(/:([a-zA-Z0-9\-:]+)/);
     let modifiers = name.match(/\.[^.\]]+(?=[^\]]*$)/g) || [];
@@ -20143,7 +18324,6 @@ var directiveOrder = [
   "bind",
   "init",
   "for",
-  "mask",
   "model",
   "modelable",
   "transition",
@@ -20160,38 +18340,15 @@ function byPriority(a, b) {
 
 // packages/alpinejs/src/utils/dispatch.js
 function dispatch(el, name, detail = {}) {
-  el.dispatchEvent(new CustomEvent(name, {
-    detail,
-    bubbles: true,
-    composed: true,
-    cancelable: true
-  }));
-}
-
-// packages/alpinejs/src/nextTick.js
-var tickStack = [];
-var isHolding = false;
-function nextTick(callback = () => {
-}) {
-  queueMicrotask(() => {
-    isHolding || setTimeout(() => {
-      releaseNextTicks();
-    });
-  });
-  return new Promise((res) => {
-    tickStack.push(() => {
-      callback();
-      res();
-    });
-  });
-}
-function releaseNextTicks() {
-  isHolding = false;
-  while (tickStack.length)
-    tickStack.shift()();
-}
-function holdNextTicks() {
-  isHolding = true;
+  el.dispatchEvent(
+    new CustomEvent(name, {
+      detail,
+      bubbles: true,
+      // Allows events to pass the shadow DOM barrier.
+      composed: true,
+      cancelable: true
+    })
+  );
 }
 
 // packages/alpinejs/src/utils/walk.js
@@ -20269,9 +18426,16 @@ function findClosest(el, callback) {
 function isRoot(el) {
   return rootSelectors().some((selector) => el.matches(selector));
 }
-function initTree(el, walker = walk) {
+var initInterceptors2 = [];
+function interceptInit(callback) {
+  initInterceptors2.push(callback);
+}
+function initTree(el, walker = walk, intercept = () => {
+}) {
   deferHandlingDirectives(() => {
     walker(el, (el2, skip) => {
+      intercept(el2, skip);
+      initInterceptors2.forEach((i) => i(el2, skip));
       directives(el2, el2.attributes).forEach((handle) => handle());
       el2._x_ignore && skip();
     });
@@ -20279,6 +18443,32 @@ function initTree(el, walker = walk) {
 }
 function destroyTree(root) {
   walk(root, (el) => cleanupAttributes(el));
+}
+
+// packages/alpinejs/src/nextTick.js
+var tickStack = [];
+var isHolding = false;
+function nextTick(callback = () => {
+}) {
+  queueMicrotask(() => {
+    isHolding || setTimeout(() => {
+      releaseNextTicks();
+    });
+  });
+  return new Promise((res) => {
+    tickStack.push(() => {
+      callback();
+      res();
+    });
+  });
+}
+function releaseNextTicks() {
+  isHolding = false;
+  while (tickStack.length)
+    tickStack.shift()();
+}
+function holdNextTicks() {
+  isHolding = true;
 }
 
 // packages/alpinejs/src/utils/classes.js
@@ -20379,7 +18569,7 @@ function once(callback, fallback = () => {
 }
 
 // packages/alpinejs/src/directives/x-transition.js
-directive("transition", (el, {value, modifiers, expression}, {evaluate: evaluate2}) => {
+directive("transition", (el, { value, modifiers, expression }, { evaluate: evaluate2 }) => {
   if (typeof expression === "function")
     expression = evaluate2(expression);
   if (!expression) {
@@ -20391,7 +18581,7 @@ directive("transition", (el, {value, modifiers, expression}, {evaluate: evaluate
 function registerTransitionsFromClassString(el, classString, stage) {
   registerTransitionObject(el, setClasses, "");
   let directiveStorageMap = {
-    enter: (classes) => {
+    "enter": (classes) => {
       el._x_transition.enter.during = classes;
     },
     "enter-start": (classes) => {
@@ -20400,7 +18590,7 @@ function registerTransitionsFromClassString(el, classString, stage) {
     "enter-end": (classes) => {
       el._x_transition.enter.end = classes;
     },
-    leave: (classes) => {
+    "leave": (classes) => {
       el._x_transition.leave.during = classes;
     },
     "leave-start": (classes) => {
@@ -20472,8 +18662,8 @@ function registerTransitionsFromHelper(el, modifiers, stage) {
 function registerTransitionObject(el, setFunction, defaultValue = {}) {
   if (!el._x_transition)
     el._x_transition = {
-      enter: {during: defaultValue, start: defaultValue, end: defaultValue},
-      leave: {during: defaultValue, start: defaultValue, end: defaultValue},
+      enter: { during: defaultValue, start: defaultValue, end: defaultValue },
+      leave: { during: defaultValue, start: defaultValue, end: defaultValue },
       in(before = () => {
       }, after = () => {
       }) {
@@ -20508,7 +18698,7 @@ window.Element.prototype._x_toggleAndCascadeWithTransitions = function(el, value
   el._x_hidePromise = el._x_transition ? new Promise((resolve, reject) => {
     el._x_transition.out(() => {
     }, () => resolve(hide));
-    el._x_transitioning.beforeCancel(() => reject({isFromCancelledTransition: true}));
+    el._x_transitioning.beforeCancel(() => reject({ isFromCancelledTransition: true }));
   }) : Promise.resolve(hide);
   queueMicrotask(() => {
     let closest = closestHide(el);
@@ -20541,7 +18731,7 @@ function closestHide(el) {
     return;
   return parent._x_hidePromise ? parent : closestHide(parent);
 }
-function transition(el, setFunction, {during, start: start2, end} = {}, before = () => {
+function transition(el, setFunction, { during, start: start2, end } = {}, before = () => {
 }, after = () => {
 }) {
   if (el._x_transitioning)
@@ -20658,6 +18848,9 @@ var isCloning = false;
 function skipDuringClone(callback, fallback = () => {
 }) {
   return (...args) => isCloning ? fallback(...args) : callback(...args);
+}
+function onlyDuringClone(callback) {
+  return (...args) => isCloning && callback(...args);
 }
 function clone(oldEl, newEl) {
   if (!newEl._x_dataStack)
@@ -20818,11 +19011,11 @@ function getBinding(el, name, fallback) {
   let attr = el.getAttribute(name);
   if (attr === null)
     return typeof fallback === "function" ? fallback() : fallback;
+  if (attr === "")
+    return true;
   if (isBooleanAttr(name)) {
     return !![name, "true"].includes(attr);
   }
-  if (attr === "")
-    return true;
   return attr;
 }
 
@@ -20905,7 +19098,7 @@ function applyBindingsObject(el, obj, original) {
   let cleanupRunners = [];
   while (cleanupRunners.length)
     cleanupRunners.pop()();
-  let attributes = Object.entries(obj).map(([name, value]) => ({name, value}));
+  let attributes = Object.entries(obj).map(([name, value]) => ({ name, value }));
   let staticAttributes = attributesOnly(attributes);
   attributes = attributes.map((attribute) => {
     if (staticAttributes.find((attr) => attr.name === attribute.name)) {
@@ -20955,26 +19148,34 @@ var Alpine = {
   get raw() {
     return raw;
   },
-  version: "3.10.3",
+  version: "3.12.0",
   flushAndStopDeferringMutations,
   dontAutoEvaluateFunctions,
   disableEffectScheduling,
+  startObservingMutations,
+  stopObservingMutations,
   setReactivityEngine,
   closestDataStack,
   skipDuringClone,
+  onlyDuringClone,
   addRootSelector,
   addInitSelector,
   addScopeToNode,
   deferMutations,
   mapAttributes,
   evaluateLater,
+  interceptInit,
   setEvaluator,
   mergeProxies,
   findClosest,
   closestRoot,
+  destroyTree,
   interceptor,
+  // INTERNAL: not public API and is subject to change without major release.
   transition,
+  // INTERNAL
   setStyles,
+  // INTERNAL
   mutateDom,
   directive,
   throttle,
@@ -20991,6 +19192,7 @@ var Alpine = {
   clone,
   bound: getBinding,
   $data: scope,
+  walk,
   data,
   bind: bind2
 };
@@ -20998,34 +19200,13 @@ var alpine_default = Alpine;
 
 // node_modules/@vue/shared/dist/shared.esm-bundler.js
 function makeMap(str, expectsLowerCase) {
-  const map = Object.create(null);
+  const map = /* @__PURE__ */ Object.create(null);
   const list = str.split(",");
   for (let i = 0; i < list.length; i++) {
     map[list[i]] = true;
   }
   return expectsLowerCase ? (val) => !!map[val.toLowerCase()] : (val) => !!map[val];
 }
-var PatchFlagNames = {
-  [1]: `TEXT`,
-  [2]: `CLASS`,
-  [4]: `STYLE`,
-  [8]: `PROPS`,
-  [16]: `FULL_PROPS`,
-  [32]: `HYDRATE_EVENTS`,
-  [64]: `STABLE_FRAGMENT`,
-  [128]: `KEYED_FRAGMENT`,
-  [256]: `UNKEYED_FRAGMENT`,
-  [512]: `NEED_PATCH`,
-  [1024]: `DYNAMIC_SLOTS`,
-  [2048]: `DEV_ROOT_FRAGMENT`,
-  [-1]: `HOISTED`,
-  [-2]: `BAIL`
-};
-var slotFlagsText = {
-  [1]: "STABLE",
-  [2]: "DYNAMIC",
-  [3]: "FORWARDED"
-};
 var specialBooleanAttrs = `itemscope,allowfullscreen,formnovalidate,ismap,nomodule,novalidate,readonly`;
 var isBooleanAttr2 = /* @__PURE__ */ makeMap(specialBooleanAttrs + `,async,autofocus,autoplay,controls,default,defer,disabled,hidden,loop,open,required,reversed,scoped,seamless,checked,muted,multiple,selected`);
 var EMPTY_OBJ =  true ? Object.freeze({}) : 0;
@@ -21045,7 +19226,7 @@ var toRawType = (value) => {
 };
 var isIntegerKey = (key) => isString(key) && key !== "NaN" && key[0] !== "-" && "" + parseInt(key, 10) === key;
 var cacheStringFunction = (fn) => {
-  const cache = Object.create(null);
+  const cache = /* @__PURE__ */ Object.create(null);
   return (str) => {
     const hit = cache[str];
     return hit || (cache[str] = fn(str));
@@ -21062,7 +19243,7 @@ var toHandlerKey = cacheStringFunction((str) => str ? `on${capitalize(str)}` : `
 var hasChanged = (value, oldValue) => value !== oldValue && (value === value || oldValue === oldValue);
 
 // node_modules/@vue/reactivity/dist/reactivity.esm-bundler.js
-var targetMap = new WeakMap();
+var targetMap = /* @__PURE__ */ new WeakMap();
 var effectStack = [];
 var activeEffect;
 var ITERATE_KEY = Symbol( true ? "iterate" : 0);
@@ -21119,7 +19300,7 @@ function createReactiveEffect(fn, options) {
   return effect3;
 }
 function cleanup(effect3) {
-  const {deps} = effect3;
+  const { deps } = effect3;
   if (deps.length) {
     for (let i = 0; i < deps.length; i++) {
       deps[i].delete(effect3);
@@ -21147,11 +19328,11 @@ function track(target, type, key) {
   }
   let depsMap = targetMap.get(target);
   if (!depsMap) {
-    targetMap.set(target, depsMap = new Map());
+    targetMap.set(target, depsMap = /* @__PURE__ */ new Map());
   }
   let dep = depsMap.get(key);
   if (!dep) {
-    depsMap.set(key, dep = new Set());
+    depsMap.set(key, dep = /* @__PURE__ */ new Set());
   }
   if (!dep.has(activeEffect)) {
     dep.add(activeEffect);
@@ -21171,7 +19352,7 @@ function trigger(target, type, key, newValue, oldValue, oldTarget) {
   if (!depsMap) {
     return;
   }
-  const effects = new Set();
+  const effects = /* @__PURE__ */ new Set();
   const add2 = (effectsToAdd) => {
     if (effectsToAdd) {
       effectsToAdd.forEach((effect3) => {
@@ -21382,14 +19563,17 @@ var toReadonly = (value) => isObject(value) ? readonly(value) : value;
 var toShallow = (value) => value;
 var getProto = (v) => Reflect.getPrototypeOf(v);
 function get$1(target, key, isReadonly = false, isShallow = false) {
-  target = target["__v_raw"];
+  target = target[
+    "__v_raw"
+    /* RAW */
+  ];
   const rawTarget = toRaw(target);
   const rawKey = toRaw(key);
   if (key !== rawKey) {
     !isReadonly && track(rawTarget, "get", key);
   }
   !isReadonly && track(rawTarget, "get", rawKey);
-  const {has: has2} = getProto(rawTarget);
+  const { has: has2 } = getProto(rawTarget);
   const wrap = isShallow ? toShallow : isReadonly ? toReadonly : toReactive;
   if (has2.call(rawTarget, key)) {
     return wrap(target.get(key));
@@ -21400,7 +19584,10 @@ function get$1(target, key, isReadonly = false, isShallow = false) {
   }
 }
 function has$1(key, isReadonly = false) {
-  const target = this["__v_raw"];
+  const target = this[
+    "__v_raw"
+    /* RAW */
+  ];
   const rawTarget = toRaw(target);
   const rawKey = toRaw(key);
   if (key !== rawKey) {
@@ -21410,7 +19597,10 @@ function has$1(key, isReadonly = false) {
   return key === rawKey ? target.has(key) : target.has(key) || target.has(rawKey);
 }
 function size(target, isReadonly = false) {
-  target = target["__v_raw"];
+  target = target[
+    "__v_raw"
+    /* RAW */
+  ];
   !isReadonly && track(toRaw(target), "iterate", ITERATE_KEY);
   return Reflect.get(target, "size", target);
 }
@@ -21428,7 +19618,7 @@ function add(value) {
 function set$1(key, value) {
   value = toRaw(value);
   const target = toRaw(this);
-  const {has: has2, get: get3} = getProto(target);
+  const { has: has2, get: get3 } = getProto(target);
   let hadKey = has2.call(target, key);
   if (!hadKey) {
     key = toRaw(key);
@@ -21447,7 +19637,7 @@ function set$1(key, value) {
 }
 function deleteEntry(key) {
   const target = toRaw(this);
-  const {has: has2, get: get3} = getProto(target);
+  const { has: has2, get: get3 } = getProto(target);
   let hadKey = has2.call(target, key);
   if (!hadKey) {
     key = toRaw(key);
@@ -21475,7 +19665,10 @@ function clear() {
 function createForEach(isReadonly, isShallow) {
   return function forEach(callback, thisArg) {
     const observed = this;
-    const target = observed["__v_raw"];
+    const target = observed[
+      "__v_raw"
+      /* RAW */
+    ];
     const rawTarget = toRaw(target);
     const wrap = isShallow ? toShallow : isReadonly ? toReadonly : toReactive;
     !isReadonly && track(rawTarget, "iterate", ITERATE_KEY);
@@ -21486,7 +19679,10 @@ function createForEach(isReadonly, isShallow) {
 }
 function createIterableMethod(method, isReadonly, isShallow) {
   return function(...args) {
-    const target = this["__v_raw"];
+    const target = this[
+      "__v_raw"
+      /* RAW */
+    ];
     const rawTarget = toRaw(target);
     const targetIsMap = isMap(rawTarget);
     const isPair = method === "entries" || method === Symbol.iterator && targetIsMap;
@@ -21495,13 +19691,15 @@ function createIterableMethod(method, isReadonly, isShallow) {
     const wrap = isShallow ? toShallow : isReadonly ? toReadonly : toReactive;
     !isReadonly && track(rawTarget, "iterate", isKeyOnly ? MAP_KEY_ITERATE_KEY : ITERATE_KEY);
     return {
+      // iterator protocol
       next() {
-        const {value, done} = innerIterator.next();
-        return done ? {value, done} : {
+        const { value, done } = innerIterator.next();
+        return done ? { value, done } : {
           value: isPair ? [wrap(value[0]), wrap(value[1])] : wrap(value),
           done
         };
       },
+      // iterable protocol
       [Symbol.iterator]() {
         return this;
       }
@@ -21555,10 +19753,22 @@ var readonlyInstrumentations = {
   has(key) {
     return has$1.call(this, key, true);
   },
-  add: createReadonlyMethod("add"),
-  set: createReadonlyMethod("set"),
-  delete: createReadonlyMethod("delete"),
-  clear: createReadonlyMethod("clear"),
+  add: createReadonlyMethod(
+    "add"
+    /* ADD */
+  ),
+  set: createReadonlyMethod(
+    "set"
+    /* SET */
+  ),
+  delete: createReadonlyMethod(
+    "delete"
+    /* DELETE */
+  ),
+  clear: createReadonlyMethod(
+    "clear"
+    /* CLEAR */
+  ),
   forEach: createForEach(true, false)
 };
 var shallowReadonlyInstrumentations = {
@@ -21571,10 +19781,22 @@ var shallowReadonlyInstrumentations = {
   has(key) {
     return has$1.call(this, key, true);
   },
-  add: createReadonlyMethod("add"),
-  set: createReadonlyMethod("set"),
-  delete: createReadonlyMethod("delete"),
-  clear: createReadonlyMethod("clear"),
+  add: createReadonlyMethod(
+    "add"
+    /* ADD */
+  ),
+  set: createReadonlyMethod(
+    "set"
+    /* SET */
+  ),
+  delete: createReadonlyMethod(
+    "delete"
+    /* DELETE */
+  ),
+  clear: createReadonlyMethod(
+    "clear"
+    /* CLEAR */
+  ),
   forEach: createForEach(true, true)
 };
 var iteratorMethods = ["keys", "values", "entries", Symbol.iterator];
@@ -21616,10 +19838,10 @@ function checkIdentityKeys(target, has2, key) {
     console.warn(`Reactive ${type} contains both the raw and reactive versions of the same object${type === `Map` ? ` as keys` : ``}, which can lead to inconsistencies. Avoid differentiating between the raw and reactive versions of an object and only use the reactive version if possible.`);
   }
 }
-var reactiveMap = new WeakMap();
-var shallowReactiveMap = new WeakMap();
-var readonlyMap = new WeakMap();
-var shallowReadonlyMap = new WeakMap();
+var reactiveMap = /* @__PURE__ */ new WeakMap();
+var shallowReactiveMap = /* @__PURE__ */ new WeakMap();
+var readonlyMap = /* @__PURE__ */ new WeakMap();
+var shallowReadonlyMap = /* @__PURE__ */ new WeakMap();
 function targetTypeMap(rawType) {
   switch (rawType) {
     case "Object":
@@ -21635,10 +19857,16 @@ function targetTypeMap(rawType) {
   }
 }
 function getTargetType(value) {
-  return value["__v_skip"] || !Object.isExtensible(value) ? 0 : targetTypeMap(toRawType(value));
+  return value[
+    "__v_skip"
+    /* SKIP */
+  ] || !Object.isExtensible(value) ? 0 : targetTypeMap(toRawType(value));
 }
 function reactive2(target) {
-  if (target && target["__v_isReadonly"]) {
+  if (target && target[
+    "__v_isReadonly"
+    /* IS_READONLY */
+  ]) {
     return target;
   }
   return createReactiveObject(target, false, mutableHandlers, mutableCollectionHandlers, reactiveMap);
@@ -21653,7 +19881,13 @@ function createReactiveObject(target, isReadonly, baseHandlers, collectionHandle
     }
     return target;
   }
-  if (target["__v_raw"] && !(isReadonly && target["__v_isReactive"])) {
+  if (target[
+    "__v_raw"
+    /* RAW */
+  ] && !(isReadonly && target[
+    "__v_isReactive"
+    /* IS_REACTIVE */
+  ])) {
     return target;
   }
   const existingProxy = proxyMap.get(target);
@@ -21669,7 +19903,10 @@ function createReactiveObject(target, isReadonly, baseHandlers, collectionHandle
   return proxy;
 }
 function toRaw(observed) {
-  return observed && toRaw(observed["__v_raw"]) || observed;
+  return observed && toRaw(observed[
+    "__v_raw"
+    /* RAW */
+  ]) || observed;
 }
 function isRef(r) {
   return Boolean(r && r.__v_isRef === true);
@@ -21682,7 +19919,7 @@ magic("nextTick", () => nextTick);
 magic("dispatch", (el) => dispatch.bind(dispatch, el));
 
 // packages/alpinejs/src/magics/$watch.js
-magic("watch", (el, {evaluateLater: evaluateLater2, effect: effect3}) => (key, callback) => {
+magic("watch", (el, { evaluateLater: evaluateLater2, effect: effect3 }) => (key, callback) => {
   let evaluate2 = evaluateLater2(key);
   let firstTime = true;
   let oldValue;
@@ -21765,8 +20002,41 @@ function warnMissingPluginMagic(name, magicName, slug) {
   magic(magicName, (el) => warn(`You can't use [$${directiveName}] without first installing the "${name}" plugin here: https://alpinejs.dev/plugins/${slug}`, el));
 }
 
+// packages/alpinejs/src/entangle.js
+function entangle({ get: outerGet, set: outerSet }, { get: innerGet, set: innerSet }) {
+  let firstRun = true;
+  let outerHash, innerHash, outerHashLatest, innerHashLatest;
+  let reference = effect(() => {
+    let outer, inner;
+    if (firstRun) {
+      outer = outerGet();
+      innerSet(outer);
+      inner = innerGet();
+      firstRun = false;
+    } else {
+      outer = outerGet();
+      inner = innerGet();
+      outerHashLatest = JSON.stringify(outer);
+      innerHashLatest = JSON.stringify(inner);
+      if (outerHashLatest !== outerHash) {
+        inner = innerGet();
+        innerSet(outer);
+        inner = outer;
+      } else {
+        outerSet(inner);
+        outer = inner;
+      }
+    }
+    outerHash = JSON.stringify(outer);
+    innerHash = JSON.stringify(inner);
+  });
+  return () => {
+    release(reference);
+  };
+}
+
 // packages/alpinejs/src/directives/x-modelable.js
-directive("modelable", (el, {expression}, {effect: effect3, evaluateLater: evaluateLater2}) => {
+directive("modelable", (el, { expression }, { effect: effect3, evaluateLater: evaluateLater2, cleanup: cleanup2 }) => {
   let func = evaluateLater2(expression);
   let innerGet = () => {
     let result;
@@ -21775,7 +20045,7 @@ directive("modelable", (el, {expression}, {effect: effect3, evaluateLater: evalu
   };
   let evaluateInnerSet = evaluateLater2(`${expression} = __placeholder`);
   let innerSet = (val) => evaluateInnerSet(() => {
-  }, {scope: {__placeholder: val}});
+  }, { scope: { "__placeholder": val } });
   let initialValue = innerGet();
   innerSet(initialValue);
   queueMicrotask(() => {
@@ -21784,16 +20054,38 @@ directive("modelable", (el, {expression}, {effect: effect3, evaluateLater: evalu
     el._x_removeModelListeners["default"]();
     let outerGet = el._x_model.get;
     let outerSet = el._x_model.set;
-    effect3(() => innerSet(outerGet()));
-    effect3(() => outerSet(innerGet()));
+    let releaseEntanglement = entangle(
+      {
+        get() {
+          return outerGet();
+        },
+        set(value) {
+          outerSet(value);
+        }
+      },
+      {
+        get() {
+          return innerGet();
+        },
+        set(value) {
+          innerSet(value);
+        }
+      }
+    );
+    cleanup2(releaseEntanglement);
   });
 });
 
 // packages/alpinejs/src/directives/x-teleport.js
-directive("teleport", (el, {expression}, {cleanup: cleanup2}) => {
+var teleportContainerDuringClone = document.createElement("div");
+directive("teleport", (el, { modifiers, expression }, { cleanup: cleanup2 }) => {
   if (el.tagName.toLowerCase() !== "template")
     warn("x-teleport can only be used on a <template> tag", el);
-  let target = document.querySelector(expression);
+  let target = skipDuringClone(() => {
+    return document.querySelector(expression);
+  }, () => {
+    return teleportContainerDuringClone;
+  })();
   if (!target)
     warn(`Cannot find x-teleport element for selector: "${expression}"`);
   let clone2 = el.content.cloneNode(true).firstElementChild;
@@ -21809,7 +20101,13 @@ directive("teleport", (el, {expression}, {cleanup: cleanup2}) => {
   }
   addScopeToNode(clone2, {}, el);
   mutateDom(() => {
-    target.appendChild(clone2);
+    if (modifiers.includes("prepend")) {
+      target.parentNode.insertBefore(clone2, target);
+    } else if (modifiers.includes("append")) {
+      target.parentNode.insertBefore(clone2, target.nextSibling);
+    } else {
+      target.appendChild(clone2);
+    }
     initTree(clone2);
     clone2._x_ignore = true;
   });
@@ -21819,7 +20117,7 @@ directive("teleport", (el, {expression}, {cleanup: cleanup2}) => {
 // packages/alpinejs/src/directives/x-ignore.js
 var handler = () => {
 };
-handler.inline = (el, {modifiers}, {cleanup: cleanup2}) => {
+handler.inline = (el, { modifiers }, { cleanup: cleanup2 }) => {
   modifiers.includes("self") ? el._x_ignoreSelf = true : el._x_ignore = true;
   cleanup2(() => {
     modifiers.includes("self") ? delete el._x_ignoreSelf : delete el._x_ignore;
@@ -21828,7 +20126,7 @@ handler.inline = (el, {modifiers}, {cleanup: cleanup2}) => {
 directive("ignore", handler);
 
 // packages/alpinejs/src/directives/x-effect.js
-directive("effect", (el, {expression}, {effect: effect3}) => effect3(evaluateLater(el, expression)));
+directive("effect", (el, { expression }, { effect: effect3 }) => effect3(evaluateLater(el, expression)));
 
 // packages/alpinejs/src/utils/on.js
 function on(el, event, modifiers, callback) {
@@ -21915,6 +20213,10 @@ function isNumeric(subject) {
   return !Array.isArray(subject) && !isNaN(subject);
 }
 function kebabCase2(subject) {
+  if ([" ", "_"].includes(
+    subject
+  ))
+    return subject;
   return subject.replace(/([a-z])([A-Z])/g, "$1-$2").replace(/[_\s]/, "-").toLowerCase();
 }
 function isKeyEvent(event) {
@@ -21922,10 +20224,14 @@ function isKeyEvent(event) {
 }
 function isListeningForASpecificKeyThatHasntBeenPressed(e, modifiers) {
   let keyModifiers = modifiers.filter((i) => {
-    return !["window", "document", "prevent", "stop", "once"].includes(i);
+    return !["window", "document", "prevent", "stop", "once", "capture"].includes(i);
   });
   if (keyModifiers.includes("debounce")) {
     let debounceIndex = keyModifiers.indexOf("debounce");
+    keyModifiers.splice(debounceIndex, isNumeric((keyModifiers[debounceIndex + 1] || "invalid-wait").split("ms")[0]) ? 2 : 1);
+  }
+  if (keyModifiers.includes("throttle")) {
+    let debounceIndex = keyModifiers.indexOf("throttle");
     keyModifiers.splice(debounceIndex, isNumeric((keyModifiers[debounceIndex + 1] || "invalid-wait").split("ms")[0]) ? 2 : 1);
   }
   if (keyModifiers.length === 0)
@@ -21953,18 +20259,20 @@ function keyToModifiers(key) {
     return [];
   key = kebabCase2(key);
   let modifierToKeyMap = {
-    ctrl: "control",
-    slash: "/",
-    space: "-",
-    spacebar: "-",
-    cmd: "meta",
-    esc: "escape",
-    up: "arrow-up",
-    down: "arrow-down",
-    left: "arrow-left",
-    right: "arrow-right",
-    period: ".",
-    equal: "="
+    "ctrl": "control",
+    "slash": "/",
+    "space": " ",
+    "spacebar": " ",
+    "cmd": "meta",
+    "esc": "escape",
+    "up": "arrow-up",
+    "down": "arrow-down",
+    "left": "arrow-left",
+    "right": "arrow-right",
+    "period": ".",
+    "equal": "=",
+    "minus": "-",
+    "underscore": "_"
   };
   modifierToKeyMap[key] = key;
   return Object.keys(modifierToKeyMap).map((modifier) => {
@@ -21974,81 +20282,108 @@ function keyToModifiers(key) {
 }
 
 // packages/alpinejs/src/directives/x-model.js
-directive("model", (el, {modifiers, expression}, {effect: effect3, cleanup: cleanup2}) => {
-  let evaluate2 = evaluateLater(el, expression);
-  let assignmentExpression = `${expression} = rightSideOfExpression($event, ${expression})`;
-  let evaluateAssignment = evaluateLater(el, assignmentExpression);
-  var event = el.tagName.toLowerCase() === "select" || ["checkbox", "radio"].includes(el.type) || modifiers.includes("lazy") ? "change" : "input";
-  let assigmentFunction = generateAssignmentFunction(el, modifiers, expression);
-  let removeListener = on(el, event, modifiers, (e) => {
-    evaluateAssignment(() => {
-    }, {scope: {
-      $event: e,
-      rightSideOfExpression: assigmentFunction
-    }});
-  });
-  if (!el._x_removeModelListeners)
-    el._x_removeModelListeners = {};
-  el._x_removeModelListeners["default"] = removeListener;
-  cleanup2(() => el._x_removeModelListeners["default"]());
-  let evaluateSetModel = evaluateLater(el, `${expression} = __placeholder`);
-  el._x_model = {
-    get() {
-      let result;
-      evaluate2((value) => result = value);
-      return result;
-    },
-    set(value) {
-      evaluateSetModel(() => {
-      }, {scope: {__placeholder: value}});
+directive("model", (el, { modifiers, expression }, { effect: effect3, cleanup: cleanup2 }) => {
+  let scopeTarget = el;
+  if (modifiers.includes("parent")) {
+    scopeTarget = el.parentNode;
+  }
+  let evaluateGet = evaluateLater(scopeTarget, expression);
+  let evaluateSet;
+  if (typeof expression === "string") {
+    evaluateSet = evaluateLater(scopeTarget, `${expression} = __placeholder`);
+  } else if (typeof expression === "function" && typeof expression() === "string") {
+    evaluateSet = evaluateLater(scopeTarget, `${expression()} = __placeholder`);
+  } else {
+    evaluateSet = () => {
+    };
+  }
+  let getValue = () => {
+    let result;
+    evaluateGet((value) => result = value);
+    return isGetterSetter(result) ? result.get() : result;
+  };
+  let setValue = (value) => {
+    let result;
+    evaluateGet((value2) => result = value2);
+    if (isGetterSetter(result)) {
+      result.set(value);
+    } else {
+      evaluateSet(() => {
+      }, {
+        scope: { "__placeholder": value }
+      });
     }
   };
-  el._x_forceModelUpdate = () => {
-    evaluate2((value) => {
-      if (value === void 0 && expression.match(/\./))
-        value = "";
-      window.fromModel = true;
-      mutateDom(() => bind(el, "value", value));
-      delete window.fromModel;
-    });
-  };
-  effect3(() => {
-    if (modifiers.includes("unintrusive") && document.activeElement.isSameNode(el))
-      return;
-    el._x_forceModelUpdate();
-  });
-});
-function generateAssignmentFunction(el, modifiers, expression) {
-  if (el.type === "radio") {
+  if (modifiers.includes("fill") && el.hasAttribute("value") && (getValue() === null || getValue() === "")) {
+    setValue(el.value);
+  }
+  if (typeof expression === "string" && el.type === "radio") {
     mutateDom(() => {
       if (!el.hasAttribute("name"))
         el.setAttribute("name", expression);
     });
   }
-  return (event, currentValue) => {
-    return mutateDom(() => {
-      if (event instanceof CustomEvent && event.detail !== void 0) {
-        return event.detail || event.target.value;
-      } else if (el.type === "checkbox") {
-        if (Array.isArray(currentValue)) {
-          let newValue = modifiers.includes("number") ? safeParseNumber(event.target.value) : event.target.value;
-          return event.target.checked ? currentValue.concat([newValue]) : currentValue.filter((el2) => !checkedAttrLooseCompare2(el2, newValue));
-        } else {
-          return event.target.checked;
-        }
-      } else if (el.tagName.toLowerCase() === "select" && el.multiple) {
-        return modifiers.includes("number") ? Array.from(event.target.selectedOptions).map((option) => {
-          let rawValue = option.value || option.text;
-          return safeParseNumber(rawValue);
-        }) : Array.from(event.target.selectedOptions).map((option) => {
-          return option.value || option.text;
-        });
-      } else {
-        let rawValue = event.target.value;
-        return modifiers.includes("number") ? safeParseNumber(rawValue) : modifiers.includes("trim") ? rawValue.trim() : rawValue;
-      }
+  var event = el.tagName.toLowerCase() === "select" || ["checkbox", "radio"].includes(el.type) || modifiers.includes("lazy") ? "change" : "input";
+  let removeListener = isCloning ? () => {
+  } : on(el, event, modifiers, (e) => {
+    setValue(getInputValue(el, modifiers, e, getValue()));
+  });
+  if (!el._x_removeModelListeners)
+    el._x_removeModelListeners = {};
+  el._x_removeModelListeners["default"] = removeListener;
+  cleanup2(() => el._x_removeModelListeners["default"]());
+  if (el.form) {
+    let removeResetListener = on(el.form, "reset", [], (e) => {
+      nextTick(() => el._x_model && el._x_model.set(el.value));
     });
+    cleanup2(() => removeResetListener());
+  }
+  el._x_model = {
+    get() {
+      return getValue();
+    },
+    set(value) {
+      setValue(value);
+    }
   };
+  el._x_forceModelUpdate = (value) => {
+    value = value === void 0 ? getValue() : value;
+    if (value === void 0 && typeof expression === "string" && expression.match(/\./))
+      value = "";
+    window.fromModel = true;
+    mutateDom(() => bind(el, "value", value));
+    delete window.fromModel;
+  };
+  effect3(() => {
+    let value = getValue();
+    if (modifiers.includes("unintrusive") && document.activeElement.isSameNode(el))
+      return;
+    el._x_forceModelUpdate(value);
+  });
+});
+function getInputValue(el, modifiers, event, currentValue) {
+  return mutateDom(() => {
+    if (event instanceof CustomEvent && event.detail !== void 0) {
+      return typeof event.detail != "undefined" ? event.detail : event.target.value;
+    } else if (el.type === "checkbox") {
+      if (Array.isArray(currentValue)) {
+        let newValue = modifiers.includes("number") ? safeParseNumber(event.target.value) : event.target.value;
+        return event.target.checked ? currentValue.concat([newValue]) : currentValue.filter((el2) => !checkedAttrLooseCompare2(el2, newValue));
+      } else {
+        return event.target.checked;
+      }
+    } else if (el.tagName.toLowerCase() === "select" && el.multiple) {
+      return modifiers.includes("number") ? Array.from(event.target.selectedOptions).map((option) => {
+        let rawValue = option.value || option.text;
+        return safeParseNumber(rawValue);
+      }) : Array.from(event.target.selectedOptions).map((option) => {
+        return option.value || option.text;
+      });
+    } else {
+      let rawValue = event.target.value;
+      return modifiers.includes("number") ? safeParseNumber(rawValue) : modifiers.includes("trim") ? rawValue.trim() : rawValue;
+    }
+  });
 }
 function safeParseNumber(rawValue) {
   let number = rawValue ? parseFloat(rawValue) : null;
@@ -22060,13 +20395,16 @@ function checkedAttrLooseCompare2(valueA, valueB) {
 function isNumeric2(subject) {
   return !Array.isArray(subject) && !isNaN(subject);
 }
+function isGetterSetter(value) {
+  return value !== null && typeof value === "object" && typeof value.get === "function" && typeof value.set === "function";
+}
 
 // packages/alpinejs/src/directives/x-cloak.js
 directive("cloak", (el) => queueMicrotask(() => mutateDom(() => el.removeAttribute(prefix("cloak")))));
 
 // packages/alpinejs/src/directives/x-init.js
 addInitSelector(() => `[${prefix("init")}]`);
-directive("init", skipDuringClone((el, {expression}, {evaluate: evaluate2}) => {
+directive("init", skipDuringClone((el, { expression }, { evaluate: evaluate2 }) => {
   if (typeof expression === "string") {
     return !!expression.trim() && evaluate2(expression, {}, false);
   }
@@ -22074,7 +20412,7 @@ directive("init", skipDuringClone((el, {expression}, {evaluate: evaluate2}) => {
 }));
 
 // packages/alpinejs/src/directives/x-text.js
-directive("text", (el, {expression}, {effect: effect3, evaluateLater: evaluateLater2}) => {
+directive("text", (el, { expression }, { effect: effect3, evaluateLater: evaluateLater2 }) => {
   let evaluate2 = evaluateLater2(expression);
   effect3(() => {
     evaluate2((value) => {
@@ -22086,7 +20424,7 @@ directive("text", (el, {expression}, {effect: effect3, evaluateLater: evaluateLa
 });
 
 // packages/alpinejs/src/directives/x-html.js
-directive("html", (el, {expression}, {effect: effect3, evaluateLater: evaluateLater2}) => {
+directive("html", (el, { expression }, { effect: effect3, evaluateLater: evaluateLater2 }) => {
   let evaluate2 = evaluateLater2(expression);
   effect3(() => {
     evaluate2((value) => {
@@ -22102,22 +20440,23 @@ directive("html", (el, {expression}, {effect: effect3, evaluateLater: evaluateLa
 
 // packages/alpinejs/src/directives/x-bind.js
 mapAttributes(startingWith(":", into(prefix("bind:"))));
-directive("bind", (el, {value, modifiers, expression, original}, {effect: effect3}) => {
+directive("bind", (el, { value, modifiers, expression, original }, { effect: effect3 }) => {
   if (!value) {
     let bindingProviders = {};
     injectBindingProviders(bindingProviders);
     let getBindings = evaluateLater(el, expression);
     getBindings((bindings) => {
       applyBindingsObject(el, bindings, original);
-    }, {scope: bindingProviders});
+    }, { scope: bindingProviders });
     return;
   }
   if (value === "key")
     return storeKeyForXFor(el, expression);
   let evaluate2 = evaluateLater(el, expression);
   effect3(() => evaluate2((result) => {
-    if (result === void 0 && expression.match(/\./))
+    if (result === void 0 && typeof expression === "string" && expression.match(/\./)) {
       result = "";
+    }
     mutateDom(() => bind(el, value, result, modifiers));
   }));
 });
@@ -22127,14 +20466,14 @@ function storeKeyForXFor(el, expression) {
 
 // packages/alpinejs/src/directives/x-data.js
 addRootSelector(() => `[${prefix("data")}]`);
-directive("data", skipDuringClone((el, {expression}, {cleanup: cleanup2}) => {
+directive("data", skipDuringClone((el, { expression }, { cleanup: cleanup2 }) => {
   expression = expression === "" ? "{}" : expression;
   let magicContext = {};
   injectMagics(magicContext, el);
   let dataProviderContext = {};
   injectDataProviders(dataProviderContext, magicContext);
-  let data2 = evaluate(el, expression, {scope: dataProviderContext});
-  if (data2 === void 0)
+  let data2 = evaluate(el, expression, { scope: dataProviderContext });
+  if (data2 === void 0 || data2 === true)
     data2 = {};
   injectMagics(data2, el);
   let reactiveData = reactive(data2);
@@ -22148,7 +20487,7 @@ directive("data", skipDuringClone((el, {expression}, {cleanup: cleanup2}) => {
 }));
 
 // packages/alpinejs/src/directives/x-show.js
-directive("show", (el, {modifiers, expression}, {effect: effect3}) => {
+directive("show", (el, { modifiers, expression }, { effect: effect3 }) => {
   let evaluate2 = evaluateLater(el, expression);
   if (!el._x_doHide)
     el._x_doHide = () => {
@@ -22175,13 +20514,16 @@ directive("show", (el, {modifiers, expression}, {effect: effect3}) => {
     el._x_isShown = true;
   };
   let clickAwayCompatibleShow = () => setTimeout(show);
-  let toggle = once((value) => value ? show() : hide(), (value) => {
-    if (typeof el._x_toggleAndCascadeWithTransitions === "function") {
-      el._x_toggleAndCascadeWithTransitions(el, value, show, hide);
-    } else {
-      value ? clickAwayCompatibleShow() : hide();
+  let toggle = once(
+    (value) => value ? show() : hide(),
+    (value) => {
+      if (typeof el._x_toggleAndCascadeWithTransitions === "function") {
+        el._x_toggleAndCascadeWithTransitions(el, value, show, hide);
+      } else {
+        value ? clickAwayCompatibleShow() : hide();
+      }
     }
-  });
+  );
   let oldValue;
   let firstTime = true;
   effect3(() => evaluate2((value) => {
@@ -22196,10 +20538,14 @@ directive("show", (el, {modifiers, expression}, {effect: effect3}) => {
 });
 
 // packages/alpinejs/src/directives/x-for.js
-directive("for", (el, {expression}, {effect: effect3, cleanup: cleanup2}) => {
+directive("for", (el, { expression }, { effect: effect3, cleanup: cleanup2 }) => {
   let iteratorNames = parseForExpression(expression);
   let evaluateItems = evaluateLater(el, iteratorNames.items);
-  let evaluateKey = evaluateLater(el, el._x_keyExpression || "index");
+  let evaluateKey = evaluateLater(
+    el,
+    // the x-bind:key expression is stored for our use instead of evaluated.
+    el._x_keyExpression || "index"
+  );
   el._x_prevKeys = [];
   el._x_lookup = {};
   effect3(() => loop(el, iteratorNames, evaluateItems, evaluateKey));
@@ -22225,13 +20571,13 @@ function loop(el, iteratorNames, evaluateItems, evaluateKey) {
     if (isObject2(items)) {
       items = Object.entries(items).map(([key, value]) => {
         let scope2 = getIterationScopeVariables(iteratorNames, value, key, items);
-        evaluateKey((value2) => keys.push(value2), {scope: {index: key, ...scope2}});
+        evaluateKey((value2) => keys.push(value2), { scope: { index: key, ...scope2 } });
         scopes.push(scope2);
       });
     } else {
       for (let i = 0; i < items.length; i++) {
         let scope2 = getIterationScopeVariables(iteratorNames, items[i], i, items);
-        evaluateKey((value) => keys.push(value), {scope: {index: i, ...scope2}});
+        evaluateKey((value) => keys.push(value), { scope: { index: i, ...scope2 } });
         scopes.push(scope2);
       }
     }
@@ -22361,7 +20707,7 @@ function isNumeric3(subject) {
 // packages/alpinejs/src/directives/x-ref.js
 function handler2() {
 }
-handler2.inline = (el, {expression}, {cleanup: cleanup2}) => {
+handler2.inline = (el, { expression }, { cleanup: cleanup2 }) => {
   let root = closestRoot(el);
   if (!root._x_refs)
     root._x_refs = {};
@@ -22371,7 +20717,7 @@ handler2.inline = (el, {expression}, {cleanup: cleanup2}) => {
 directive("ref", handler2);
 
 // packages/alpinejs/src/directives/x-if.js
-directive("if", (el, {expression}, {effect: effect3, cleanup: cleanup2}) => {
+directive("if", (el, { expression }, { effect: effect3, cleanup: cleanup2 }) => {
   let evaluate2 = evaluateLater(el, expression);
   let show = () => {
     if (el._x_currentIfEl)
@@ -22407,14 +20753,14 @@ directive("if", (el, {expression}, {effect: effect3, cleanup: cleanup2}) => {
 });
 
 // packages/alpinejs/src/directives/x-id.js
-directive("id", (el, {expression}, {evaluate: evaluate2}) => {
+directive("id", (el, { expression }, { evaluate: evaluate2 }) => {
   let names = evaluate2(expression);
   names.forEach((name) => setIdRoot(el, name));
 });
 
 // packages/alpinejs/src/directives/x-on.js
 mapAttributes(startingWith("@", into(prefix("on:"))));
-directive("on", skipDuringClone((el, {value, modifiers, expression}, {cleanup: cleanup2}) => {
+directive("on", skipDuringClone((el, { value, modifiers, expression }, { cleanup: cleanup2 }) => {
   let evaluate2 = expression ? evaluateLater(el, expression) : () => {
   };
   if (el.tagName.toLowerCase() === "template") {
@@ -22425,7 +20771,7 @@ directive("on", skipDuringClone((el, {value, modifiers, expression}, {cleanup: c
   }
   let removeListener = on(el, value, modifiers, (e) => {
     evaluate2(() => {
-    }, {scope: {$event: e}, params: [e]});
+    }, { scope: { "$event": e }, params: [e] });
   });
   cleanup2(() => removeListener());
 }));
@@ -22441,7 +20787,7 @@ function warnMissingPluginDirective(name, directiveName2, slug) {
 
 // packages/alpinejs/src/index.js
 alpine_default.setEvaluator(normalEvaluator);
-alpine_default.setReactivityEngine({reactive: reactive2, effect: effect2, release: stop, raw: toRaw});
+alpine_default.setReactivityEngine({ reactive: reactive2, effect: effect2, release: stop, raw: toRaw });
 var src_default = alpine_default;
 
 // packages/alpinejs/builds/module.js
@@ -25187,7 +23533,10 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony export */ __webpack_require__.d(__webpack_exports__, {
 /* harmony export */   "default": () => (__WEBPACK_DEFAULT_EXPORT__)
 /* harmony export */ });
-function _defineProperty(obj, key, value) { if (key in obj) { Object.defineProperty(obj, key, { value: value, enumerable: true, configurable: true, writable: true }); } else { obj[key] = value; } return obj; }
+function _typeof(obj) { "@babel/helpers - typeof"; return _typeof = "function" == typeof Symbol && "symbol" == typeof Symbol.iterator ? function (obj) { return typeof obj; } : function (obj) { return obj && "function" == typeof Symbol && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj; }, _typeof(obj); }
+function _defineProperty(obj, key, value) { key = _toPropertyKey(key); if (key in obj) { Object.defineProperty(obj, key, { value: value, enumerable: true, configurable: true, writable: true }); } else { obj[key] = value; } return obj; }
+function _toPropertyKey(arg) { var key = _toPrimitive(arg, "string"); return _typeof(key) === "symbol" ? key : String(key); }
+function _toPrimitive(input, hint) { if (_typeof(input) !== "object" || input === null) return input; var prim = input[Symbol.toPrimitive]; if (prim !== undefined) { var res = prim.call(input, hint || "default"); if (_typeof(res) !== "object") return res; throw new TypeError("@@toPrimitive must return a primitive value."); } return (hint === "string" ? String : Number)(input); }
 /* harmony default export */ const __WEBPACK_DEFAULT_EXPORT__ = ({
   name: "tags",
   props: _defineProperty({}, 'taglar', {
@@ -25250,7 +23599,7 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony import */ var vuedraggable__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! vuedraggable */ "./node_modules/vuedraggable/dist/vuedraggable.umd.js");
 /* harmony import */ var vuedraggable__WEBPACK_IMPORTED_MODULE_0___default = /*#__PURE__*/__webpack_require__.n(vuedraggable__WEBPACK_IMPORTED_MODULE_0__);
 function _typeof(obj) { "@babel/helpers - typeof"; return _typeof = "function" == typeof Symbol && "symbol" == typeof Symbol.iterator ? function (obj) { return typeof obj; } : function (obj) { return obj && "function" == typeof Symbol && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj; }, _typeof(obj); }
-function _regeneratorRuntime() { "use strict"; /*! regenerator-runtime -- Copyright (c) 2014-present, Facebook, Inc. -- license (MIT): https://github.com/facebook/regenerator/blob/main/LICENSE */ _regeneratorRuntime = function _regeneratorRuntime() { return exports; }; var exports = {}, Op = Object.prototype, hasOwn = Op.hasOwnProperty, $Symbol = "function" == typeof Symbol ? Symbol : {}, iteratorSymbol = $Symbol.iterator || "@@iterator", asyncIteratorSymbol = $Symbol.asyncIterator || "@@asyncIterator", toStringTagSymbol = $Symbol.toStringTag || "@@toStringTag"; function define(obj, key, value) { return Object.defineProperty(obj, key, { value: value, enumerable: !0, configurable: !0, writable: !0 }), obj[key]; } try { define({}, ""); } catch (err) { define = function define(obj, key, value) { return obj[key] = value; }; } function wrap(innerFn, outerFn, self, tryLocsList) { var protoGenerator = outerFn && outerFn.prototype instanceof Generator ? outerFn : Generator, generator = Object.create(protoGenerator.prototype), context = new Context(tryLocsList || []); return generator._invoke = function (innerFn, self, context) { var state = "suspendedStart"; return function (method, arg) { if ("executing" === state) throw new Error("Generator is already running"); if ("completed" === state) { if ("throw" === method) throw arg; return doneResult(); } for (context.method = method, context.arg = arg;;) { var delegate = context.delegate; if (delegate) { var delegateResult = maybeInvokeDelegate(delegate, context); if (delegateResult) { if (delegateResult === ContinueSentinel) continue; return delegateResult; } } if ("next" === context.method) context.sent = context._sent = context.arg;else if ("throw" === context.method) { if ("suspendedStart" === state) throw state = "completed", context.arg; context.dispatchException(context.arg); } else "return" === context.method && context.abrupt("return", context.arg); state = "executing"; var record = tryCatch(innerFn, self, context); if ("normal" === record.type) { if (state = context.done ? "completed" : "suspendedYield", record.arg === ContinueSentinel) continue; return { value: record.arg, done: context.done }; } "throw" === record.type && (state = "completed", context.method = "throw", context.arg = record.arg); } }; }(innerFn, self, context), generator; } function tryCatch(fn, obj, arg) { try { return { type: "normal", arg: fn.call(obj, arg) }; } catch (err) { return { type: "throw", arg: err }; } } exports.wrap = wrap; var ContinueSentinel = {}; function Generator() {} function GeneratorFunction() {} function GeneratorFunctionPrototype() {} var IteratorPrototype = {}; define(IteratorPrototype, iteratorSymbol, function () { return this; }); var getProto = Object.getPrototypeOf, NativeIteratorPrototype = getProto && getProto(getProto(values([]))); NativeIteratorPrototype && NativeIteratorPrototype !== Op && hasOwn.call(NativeIteratorPrototype, iteratorSymbol) && (IteratorPrototype = NativeIteratorPrototype); var Gp = GeneratorFunctionPrototype.prototype = Generator.prototype = Object.create(IteratorPrototype); function defineIteratorMethods(prototype) { ["next", "throw", "return"].forEach(function (method) { define(prototype, method, function (arg) { return this._invoke(method, arg); }); }); } function AsyncIterator(generator, PromiseImpl) { function invoke(method, arg, resolve, reject) { var record = tryCatch(generator[method], generator, arg); if ("throw" !== record.type) { var result = record.arg, value = result.value; return value && "object" == _typeof(value) && hasOwn.call(value, "__await") ? PromiseImpl.resolve(value.__await).then(function (value) { invoke("next", value, resolve, reject); }, function (err) { invoke("throw", err, resolve, reject); }) : PromiseImpl.resolve(value).then(function (unwrapped) { result.value = unwrapped, resolve(result); }, function (error) { return invoke("throw", error, resolve, reject); }); } reject(record.arg); } var previousPromise; this._invoke = function (method, arg) { function callInvokeWithMethodAndArg() { return new PromiseImpl(function (resolve, reject) { invoke(method, arg, resolve, reject); }); } return previousPromise = previousPromise ? previousPromise.then(callInvokeWithMethodAndArg, callInvokeWithMethodAndArg) : callInvokeWithMethodAndArg(); }; } function maybeInvokeDelegate(delegate, context) { var method = delegate.iterator[context.method]; if (undefined === method) { if (context.delegate = null, "throw" === context.method) { if (delegate.iterator["return"] && (context.method = "return", context.arg = undefined, maybeInvokeDelegate(delegate, context), "throw" === context.method)) return ContinueSentinel; context.method = "throw", context.arg = new TypeError("The iterator does not provide a 'throw' method"); } return ContinueSentinel; } var record = tryCatch(method, delegate.iterator, context.arg); if ("throw" === record.type) return context.method = "throw", context.arg = record.arg, context.delegate = null, ContinueSentinel; var info = record.arg; return info ? info.done ? (context[delegate.resultName] = info.value, context.next = delegate.nextLoc, "return" !== context.method && (context.method = "next", context.arg = undefined), context.delegate = null, ContinueSentinel) : info : (context.method = "throw", context.arg = new TypeError("iterator result is not an object"), context.delegate = null, ContinueSentinel); } function pushTryEntry(locs) { var entry = { tryLoc: locs[0] }; 1 in locs && (entry.catchLoc = locs[1]), 2 in locs && (entry.finallyLoc = locs[2], entry.afterLoc = locs[3]), this.tryEntries.push(entry); } function resetTryEntry(entry) { var record = entry.completion || {}; record.type = "normal", delete record.arg, entry.completion = record; } function Context(tryLocsList) { this.tryEntries = [{ tryLoc: "root" }], tryLocsList.forEach(pushTryEntry, this), this.reset(!0); } function values(iterable) { if (iterable) { var iteratorMethod = iterable[iteratorSymbol]; if (iteratorMethod) return iteratorMethod.call(iterable); if ("function" == typeof iterable.next) return iterable; if (!isNaN(iterable.length)) { var i = -1, next = function next() { for (; ++i < iterable.length;) { if (hasOwn.call(iterable, i)) return next.value = iterable[i], next.done = !1, next; } return next.value = undefined, next.done = !0, next; }; return next.next = next; } } return { next: doneResult }; } function doneResult() { return { value: undefined, done: !0 }; } return GeneratorFunction.prototype = GeneratorFunctionPrototype, define(Gp, "constructor", GeneratorFunctionPrototype), define(GeneratorFunctionPrototype, "constructor", GeneratorFunction), GeneratorFunction.displayName = define(GeneratorFunctionPrototype, toStringTagSymbol, "GeneratorFunction"), exports.isGeneratorFunction = function (genFun) { var ctor = "function" == typeof genFun && genFun.constructor; return !!ctor && (ctor === GeneratorFunction || "GeneratorFunction" === (ctor.displayName || ctor.name)); }, exports.mark = function (genFun) { return Object.setPrototypeOf ? Object.setPrototypeOf(genFun, GeneratorFunctionPrototype) : (genFun.__proto__ = GeneratorFunctionPrototype, define(genFun, toStringTagSymbol, "GeneratorFunction")), genFun.prototype = Object.create(Gp), genFun; }, exports.awrap = function (arg) { return { __await: arg }; }, defineIteratorMethods(AsyncIterator.prototype), define(AsyncIterator.prototype, asyncIteratorSymbol, function () { return this; }), exports.AsyncIterator = AsyncIterator, exports.async = function (innerFn, outerFn, self, tryLocsList, PromiseImpl) { void 0 === PromiseImpl && (PromiseImpl = Promise); var iter = new AsyncIterator(wrap(innerFn, outerFn, self, tryLocsList), PromiseImpl); return exports.isGeneratorFunction(outerFn) ? iter : iter.next().then(function (result) { return result.done ? result.value : iter.next(); }); }, defineIteratorMethods(Gp), define(Gp, toStringTagSymbol, "Generator"), define(Gp, iteratorSymbol, function () { return this; }), define(Gp, "toString", function () { return "[object Generator]"; }), exports.keys = function (object) { var keys = []; for (var key in object) { keys.push(key); } return keys.reverse(), function next() { for (; keys.length;) { var key = keys.pop(); if (key in object) return next.value = key, next.done = !1, next; } return next.done = !0, next; }; }, exports.values = values, Context.prototype = { constructor: Context, reset: function reset(skipTempReset) { if (this.prev = 0, this.next = 0, this.sent = this._sent = undefined, this.done = !1, this.delegate = null, this.method = "next", this.arg = undefined, this.tryEntries.forEach(resetTryEntry), !skipTempReset) for (var name in this) { "t" === name.charAt(0) && hasOwn.call(this, name) && !isNaN(+name.slice(1)) && (this[name] = undefined); } }, stop: function stop() { this.done = !0; var rootRecord = this.tryEntries[0].completion; if ("throw" === rootRecord.type) throw rootRecord.arg; return this.rval; }, dispatchException: function dispatchException(exception) { if (this.done) throw exception; var context = this; function handle(loc, caught) { return record.type = "throw", record.arg = exception, context.next = loc, caught && (context.method = "next", context.arg = undefined), !!caught; } for (var i = this.tryEntries.length - 1; i >= 0; --i) { var entry = this.tryEntries[i], record = entry.completion; if ("root" === entry.tryLoc) return handle("end"); if (entry.tryLoc <= this.prev) { var hasCatch = hasOwn.call(entry, "catchLoc"), hasFinally = hasOwn.call(entry, "finallyLoc"); if (hasCatch && hasFinally) { if (this.prev < entry.catchLoc) return handle(entry.catchLoc, !0); if (this.prev < entry.finallyLoc) return handle(entry.finallyLoc); } else if (hasCatch) { if (this.prev < entry.catchLoc) return handle(entry.catchLoc, !0); } else { if (!hasFinally) throw new Error("try statement without catch or finally"); if (this.prev < entry.finallyLoc) return handle(entry.finallyLoc); } } } }, abrupt: function abrupt(type, arg) { for (var i = this.tryEntries.length - 1; i >= 0; --i) { var entry = this.tryEntries[i]; if (entry.tryLoc <= this.prev && hasOwn.call(entry, "finallyLoc") && this.prev < entry.finallyLoc) { var finallyEntry = entry; break; } } finallyEntry && ("break" === type || "continue" === type) && finallyEntry.tryLoc <= arg && arg <= finallyEntry.finallyLoc && (finallyEntry = null); var record = finallyEntry ? finallyEntry.completion : {}; return record.type = type, record.arg = arg, finallyEntry ? (this.method = "next", this.next = finallyEntry.finallyLoc, ContinueSentinel) : this.complete(record); }, complete: function complete(record, afterLoc) { if ("throw" === record.type) throw record.arg; return "break" === record.type || "continue" === record.type ? this.next = record.arg : "return" === record.type ? (this.rval = this.arg = record.arg, this.method = "return", this.next = "end") : "normal" === record.type && afterLoc && (this.next = afterLoc), ContinueSentinel; }, finish: function finish(finallyLoc) { for (var i = this.tryEntries.length - 1; i >= 0; --i) { var entry = this.tryEntries[i]; if (entry.finallyLoc === finallyLoc) return this.complete(entry.completion, entry.afterLoc), resetTryEntry(entry), ContinueSentinel; } }, "catch": function _catch(tryLoc) { for (var i = this.tryEntries.length - 1; i >= 0; --i) { var entry = this.tryEntries[i]; if (entry.tryLoc === tryLoc) { var record = entry.completion; if ("throw" === record.type) { var thrown = record.arg; resetTryEntry(entry); } return thrown; } } throw new Error("illegal catch attempt"); }, delegateYield: function delegateYield(iterable, resultName, nextLoc) { return this.delegate = { iterator: values(iterable), resultName: resultName, nextLoc: nextLoc }, "next" === this.method && (this.arg = undefined), ContinueSentinel; } }, exports; }
+function _regeneratorRuntime() { "use strict"; /*! regenerator-runtime -- Copyright (c) 2014-present, Facebook, Inc. -- license (MIT): https://github.com/facebook/regenerator/blob/main/LICENSE */ _regeneratorRuntime = function _regeneratorRuntime() { return exports; }; var exports = {}, Op = Object.prototype, hasOwn = Op.hasOwnProperty, defineProperty = Object.defineProperty || function (obj, key, desc) { obj[key] = desc.value; }, $Symbol = "function" == typeof Symbol ? Symbol : {}, iteratorSymbol = $Symbol.iterator || "@@iterator", asyncIteratorSymbol = $Symbol.asyncIterator || "@@asyncIterator", toStringTagSymbol = $Symbol.toStringTag || "@@toStringTag"; function define(obj, key, value) { return Object.defineProperty(obj, key, { value: value, enumerable: !0, configurable: !0, writable: !0 }), obj[key]; } try { define({}, ""); } catch (err) { define = function define(obj, key, value) { return obj[key] = value; }; } function wrap(innerFn, outerFn, self, tryLocsList) { var protoGenerator = outerFn && outerFn.prototype instanceof Generator ? outerFn : Generator, generator = Object.create(protoGenerator.prototype), context = new Context(tryLocsList || []); return defineProperty(generator, "_invoke", { value: makeInvokeMethod(innerFn, self, context) }), generator; } function tryCatch(fn, obj, arg) { try { return { type: "normal", arg: fn.call(obj, arg) }; } catch (err) { return { type: "throw", arg: err }; } } exports.wrap = wrap; var ContinueSentinel = {}; function Generator() {} function GeneratorFunction() {} function GeneratorFunctionPrototype() {} var IteratorPrototype = {}; define(IteratorPrototype, iteratorSymbol, function () { return this; }); var getProto = Object.getPrototypeOf, NativeIteratorPrototype = getProto && getProto(getProto(values([]))); NativeIteratorPrototype && NativeIteratorPrototype !== Op && hasOwn.call(NativeIteratorPrototype, iteratorSymbol) && (IteratorPrototype = NativeIteratorPrototype); var Gp = GeneratorFunctionPrototype.prototype = Generator.prototype = Object.create(IteratorPrototype); function defineIteratorMethods(prototype) { ["next", "throw", "return"].forEach(function (method) { define(prototype, method, function (arg) { return this._invoke(method, arg); }); }); } function AsyncIterator(generator, PromiseImpl) { function invoke(method, arg, resolve, reject) { var record = tryCatch(generator[method], generator, arg); if ("throw" !== record.type) { var result = record.arg, value = result.value; return value && "object" == _typeof(value) && hasOwn.call(value, "__await") ? PromiseImpl.resolve(value.__await).then(function (value) { invoke("next", value, resolve, reject); }, function (err) { invoke("throw", err, resolve, reject); }) : PromiseImpl.resolve(value).then(function (unwrapped) { result.value = unwrapped, resolve(result); }, function (error) { return invoke("throw", error, resolve, reject); }); } reject(record.arg); } var previousPromise; defineProperty(this, "_invoke", { value: function value(method, arg) { function callInvokeWithMethodAndArg() { return new PromiseImpl(function (resolve, reject) { invoke(method, arg, resolve, reject); }); } return previousPromise = previousPromise ? previousPromise.then(callInvokeWithMethodAndArg, callInvokeWithMethodAndArg) : callInvokeWithMethodAndArg(); } }); } function makeInvokeMethod(innerFn, self, context) { var state = "suspendedStart"; return function (method, arg) { if ("executing" === state) throw new Error("Generator is already running"); if ("completed" === state) { if ("throw" === method) throw arg; return doneResult(); } for (context.method = method, context.arg = arg;;) { var delegate = context.delegate; if (delegate) { var delegateResult = maybeInvokeDelegate(delegate, context); if (delegateResult) { if (delegateResult === ContinueSentinel) continue; return delegateResult; } } if ("next" === context.method) context.sent = context._sent = context.arg;else if ("throw" === context.method) { if ("suspendedStart" === state) throw state = "completed", context.arg; context.dispatchException(context.arg); } else "return" === context.method && context.abrupt("return", context.arg); state = "executing"; var record = tryCatch(innerFn, self, context); if ("normal" === record.type) { if (state = context.done ? "completed" : "suspendedYield", record.arg === ContinueSentinel) continue; return { value: record.arg, done: context.done }; } "throw" === record.type && (state = "completed", context.method = "throw", context.arg = record.arg); } }; } function maybeInvokeDelegate(delegate, context) { var methodName = context.method, method = delegate.iterator[methodName]; if (undefined === method) return context.delegate = null, "throw" === methodName && delegate.iterator["return"] && (context.method = "return", context.arg = undefined, maybeInvokeDelegate(delegate, context), "throw" === context.method) || "return" !== methodName && (context.method = "throw", context.arg = new TypeError("The iterator does not provide a '" + methodName + "' method")), ContinueSentinel; var record = tryCatch(method, delegate.iterator, context.arg); if ("throw" === record.type) return context.method = "throw", context.arg = record.arg, context.delegate = null, ContinueSentinel; var info = record.arg; return info ? info.done ? (context[delegate.resultName] = info.value, context.next = delegate.nextLoc, "return" !== context.method && (context.method = "next", context.arg = undefined), context.delegate = null, ContinueSentinel) : info : (context.method = "throw", context.arg = new TypeError("iterator result is not an object"), context.delegate = null, ContinueSentinel); } function pushTryEntry(locs) { var entry = { tryLoc: locs[0] }; 1 in locs && (entry.catchLoc = locs[1]), 2 in locs && (entry.finallyLoc = locs[2], entry.afterLoc = locs[3]), this.tryEntries.push(entry); } function resetTryEntry(entry) { var record = entry.completion || {}; record.type = "normal", delete record.arg, entry.completion = record; } function Context(tryLocsList) { this.tryEntries = [{ tryLoc: "root" }], tryLocsList.forEach(pushTryEntry, this), this.reset(!0); } function values(iterable) { if (iterable) { var iteratorMethod = iterable[iteratorSymbol]; if (iteratorMethod) return iteratorMethod.call(iterable); if ("function" == typeof iterable.next) return iterable; if (!isNaN(iterable.length)) { var i = -1, next = function next() { for (; ++i < iterable.length;) if (hasOwn.call(iterable, i)) return next.value = iterable[i], next.done = !1, next; return next.value = undefined, next.done = !0, next; }; return next.next = next; } } return { next: doneResult }; } function doneResult() { return { value: undefined, done: !0 }; } return GeneratorFunction.prototype = GeneratorFunctionPrototype, defineProperty(Gp, "constructor", { value: GeneratorFunctionPrototype, configurable: !0 }), defineProperty(GeneratorFunctionPrototype, "constructor", { value: GeneratorFunction, configurable: !0 }), GeneratorFunction.displayName = define(GeneratorFunctionPrototype, toStringTagSymbol, "GeneratorFunction"), exports.isGeneratorFunction = function (genFun) { var ctor = "function" == typeof genFun && genFun.constructor; return !!ctor && (ctor === GeneratorFunction || "GeneratorFunction" === (ctor.displayName || ctor.name)); }, exports.mark = function (genFun) { return Object.setPrototypeOf ? Object.setPrototypeOf(genFun, GeneratorFunctionPrototype) : (genFun.__proto__ = GeneratorFunctionPrototype, define(genFun, toStringTagSymbol, "GeneratorFunction")), genFun.prototype = Object.create(Gp), genFun; }, exports.awrap = function (arg) { return { __await: arg }; }, defineIteratorMethods(AsyncIterator.prototype), define(AsyncIterator.prototype, asyncIteratorSymbol, function () { return this; }), exports.AsyncIterator = AsyncIterator, exports.async = function (innerFn, outerFn, self, tryLocsList, PromiseImpl) { void 0 === PromiseImpl && (PromiseImpl = Promise); var iter = new AsyncIterator(wrap(innerFn, outerFn, self, tryLocsList), PromiseImpl); return exports.isGeneratorFunction(outerFn) ? iter : iter.next().then(function (result) { return result.done ? result.value : iter.next(); }); }, defineIteratorMethods(Gp), define(Gp, toStringTagSymbol, "Generator"), define(Gp, iteratorSymbol, function () { return this; }), define(Gp, "toString", function () { return "[object Generator]"; }), exports.keys = function (val) { var object = Object(val), keys = []; for (var key in object) keys.push(key); return keys.reverse(), function next() { for (; keys.length;) { var key = keys.pop(); if (key in object) return next.value = key, next.done = !1, next; } return next.done = !0, next; }; }, exports.values = values, Context.prototype = { constructor: Context, reset: function reset(skipTempReset) { if (this.prev = 0, this.next = 0, this.sent = this._sent = undefined, this.done = !1, this.delegate = null, this.method = "next", this.arg = undefined, this.tryEntries.forEach(resetTryEntry), !skipTempReset) for (var name in this) "t" === name.charAt(0) && hasOwn.call(this, name) && !isNaN(+name.slice(1)) && (this[name] = undefined); }, stop: function stop() { this.done = !0; var rootRecord = this.tryEntries[0].completion; if ("throw" === rootRecord.type) throw rootRecord.arg; return this.rval; }, dispatchException: function dispatchException(exception) { if (this.done) throw exception; var context = this; function handle(loc, caught) { return record.type = "throw", record.arg = exception, context.next = loc, caught && (context.method = "next", context.arg = undefined), !!caught; } for (var i = this.tryEntries.length - 1; i >= 0; --i) { var entry = this.tryEntries[i], record = entry.completion; if ("root" === entry.tryLoc) return handle("end"); if (entry.tryLoc <= this.prev) { var hasCatch = hasOwn.call(entry, "catchLoc"), hasFinally = hasOwn.call(entry, "finallyLoc"); if (hasCatch && hasFinally) { if (this.prev < entry.catchLoc) return handle(entry.catchLoc, !0); if (this.prev < entry.finallyLoc) return handle(entry.finallyLoc); } else if (hasCatch) { if (this.prev < entry.catchLoc) return handle(entry.catchLoc, !0); } else { if (!hasFinally) throw new Error("try statement without catch or finally"); if (this.prev < entry.finallyLoc) return handle(entry.finallyLoc); } } } }, abrupt: function abrupt(type, arg) { for (var i = this.tryEntries.length - 1; i >= 0; --i) { var entry = this.tryEntries[i]; if (entry.tryLoc <= this.prev && hasOwn.call(entry, "finallyLoc") && this.prev < entry.finallyLoc) { var finallyEntry = entry; break; } } finallyEntry && ("break" === type || "continue" === type) && finallyEntry.tryLoc <= arg && arg <= finallyEntry.finallyLoc && (finallyEntry = null); var record = finallyEntry ? finallyEntry.completion : {}; return record.type = type, record.arg = arg, finallyEntry ? (this.method = "next", this.next = finallyEntry.finallyLoc, ContinueSentinel) : this.complete(record); }, complete: function complete(record, afterLoc) { if ("throw" === record.type) throw record.arg; return "break" === record.type || "continue" === record.type ? this.next = record.arg : "return" === record.type ? (this.rval = this.arg = record.arg, this.method = "return", this.next = "end") : "normal" === record.type && afterLoc && (this.next = afterLoc), ContinueSentinel; }, finish: function finish(finallyLoc) { for (var i = this.tryEntries.length - 1; i >= 0; --i) { var entry = this.tryEntries[i]; if (entry.finallyLoc === finallyLoc) return this.complete(entry.completion, entry.afterLoc), resetTryEntry(entry), ContinueSentinel; } }, "catch": function _catch(tryLoc) { for (var i = this.tryEntries.length - 1; i >= 0; --i) { var entry = this.tryEntries[i]; if (entry.tryLoc === tryLoc) { var record = entry.completion; if ("throw" === record.type) { var thrown = record.arg; resetTryEntry(entry); } return thrown; } } throw new Error("illegal catch attempt"); }, delegateYield: function delegateYield(iterable, resultName, nextLoc) { return this.delegate = { iterator: values(iterable), resultName: resultName, nextLoc: nextLoc }, "next" === this.method && (this.arg = undefined), ContinueSentinel; } }, exports; }
 function asyncGeneratorStep(gen, resolve, reject, _next, _throw, key, arg) { try { var info = gen[key](arg); var value = info.value; } catch (error) { reject(error); return; } if (info.done) { resolve(value); } else { Promise.resolve(value).then(_next, _throw); } }
 function _asyncToGenerator(fn) { return function () { var self = this, args = arguments; return new Promise(function (resolve, reject) { var gen = fn.apply(self, args); function _next(value) { asyncGeneratorStep(gen, resolve, reject, _next, _throw, "next", value); } function _throw(err) { asyncGeneratorStep(gen, resolve, reject, _next, _throw, "throw", err); } _next(undefined); }); }; }
 
@@ -25390,20 +23739,18 @@ function _asyncToGenerator(fn) { return function () { var self = this, args = ar
     var _this = this;
     return _asyncToGenerator( /*#__PURE__*/_regeneratorRuntime().mark(function _callee() {
       return _regeneratorRuntime().wrap(function _callee$(_context) {
-        while (1) {
-          switch (_context.prev = _context.next) {
-            case 0:
-              if (_this.old != null) {
-                _this.images = _this.old;
-                console.log(_this.images);
-              } else {
-                _this.images = null;
-              }
-              _this.addField();
-            case 2:
-            case "end":
-              return _context.stop();
-          }
+        while (1) switch (_context.prev = _context.next) {
+          case 0:
+            if (_this.old != null) {
+              _this.images = _this.old;
+              console.log(_this.images);
+            } else {
+              _this.images = null;
+            }
+            _this.addField();
+          case 2:
+          case "end":
+            return _context.stop();
         }
       }, _callee);
     }))();
@@ -25965,6 +24312,7 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony import */ var axios__WEBPACK_IMPORTED_MODULE_1___default = /*#__PURE__*/__webpack_require__.n(axios__WEBPACK_IMPORTED_MODULE_1__);
 
 window._ = (lodash__WEBPACK_IMPORTED_MODULE_0___default());
+
 /**
  * We'll load the axios HTTP library which allows us to easily issue requests
  * to our Laravel back-end. This library automatically handles sending the
@@ -25974,14 +24322,18 @@ window._ = (lodash__WEBPACK_IMPORTED_MODULE_0___default());
 
 window.axios = (axios__WEBPACK_IMPORTED_MODULE_1___default());
 window.axios.defaults.headers.common['X-Requested-With'] = 'XMLHttpRequest';
+
 /**
  * Echo exposes an expressive API for subscribing to channels and listening
  * for events that are broadcast by Laravel. Echo and event broadcasting
  * allows your team to easily build robust real-time web applications.
  */
+
 // import Echo from 'laravel-echo';
+
 // import Pusher from 'pusher-js';
 // window.Pusher = Pusher;
+
 // window.Echo = new Echo({
 //     broadcaster: 'pusher',
 //     key: import.meta.env.VITE_PUSHER_APP_KEY,
@@ -28268,7 +26620,7 @@ module.exports = Array.isArray || function (arr) {
 /***/ (function(module, exports) {
 
 var __WEBPACK_AMD_DEFINE_ARRAY__, __WEBPACK_AMD_DEFINE_RESULT__;/*!
- * jQuery JavaScript Library v3.6.0
+ * jQuery JavaScript Library v3.6.4
  * https://jquery.com/
  *
  * Includes Sizzle.js
@@ -28278,7 +26630,7 @@ var __WEBPACK_AMD_DEFINE_ARRAY__, __WEBPACK_AMD_DEFINE_RESULT__;/*!
  * Released under the MIT license
  * https://jquery.org/license
  *
- * Date: 2021-03-02T17:08Z
+ * Date: 2023-03-08T15:28Z
  */
 ( function( global, factory ) {
 
@@ -28292,7 +26644,7 @@ var __WEBPACK_AMD_DEFINE_ARRAY__, __WEBPACK_AMD_DEFINE_RESULT__;/*!
 		// (such as Node.js), expose a factory as module.exports.
 		// This accentuates the need for the creation of a real `window`.
 		// e.g. var jQuery = require("jquery")(window);
-		// See ticket #14549 for more info.
+		// See ticket trac-14549 for more info.
 		module.exports = global.document ?
 			factory( global, true ) :
 			function( w ) {
@@ -28420,7 +26772,7 @@ function toType( obj ) {
 
 
 var
-	version = "3.6.0",
+	version = "3.6.4",
 
 	// Define a local copy of jQuery
 	jQuery = function( selector, context ) {
@@ -28791,14 +27143,14 @@ function isArrayLike( obj ) {
 }
 var Sizzle =
 /*!
- * Sizzle CSS Selector Engine v2.3.6
+ * Sizzle CSS Selector Engine v2.3.10
  * https://sizzlejs.com/
  *
  * Copyright JS Foundation and other contributors
  * Released under the MIT license
  * https://js.foundation/
  *
- * Date: 2021-02-16
+ * Date: 2023-02-14
  */
 ( function( window ) {
 var i,
@@ -28902,7 +27254,7 @@ var i,
 		whitespace + "+$", "g" ),
 
 	rcomma = new RegExp( "^" + whitespace + "*," + whitespace + "*" ),
-	rcombinators = new RegExp( "^" + whitespace + "*([>+~]|" + whitespace + ")" + whitespace +
+	rleadingCombinator = new RegExp( "^" + whitespace + "*([>+~]|" + whitespace + ")" + whitespace +
 		"*" ),
 	rdescend = new RegExp( whitespace + "|>" ),
 
@@ -29119,7 +27471,7 @@ function Sizzle( selector, context, results, seed ) {
 				// as such selectors are not recognized by querySelectorAll.
 				// Thanks to Andrew Dupont for this technique.
 				if ( nodeType === 1 &&
-					( rdescend.test( selector ) || rcombinators.test( selector ) ) ) {
+					( rdescend.test( selector ) || rleadingCombinator.test( selector ) ) ) {
 
 					// Expand context for sibling selectors
 					newContext = rsibling.test( selector ) && testContext( context.parentNode ) ||
@@ -29443,6 +27795,24 @@ setDocument = Sizzle.setDocument = function( node ) {
 			!el.querySelectorAll( ":scope fieldset div" ).length;
 	} );
 
+	// Support: Chrome 105 - 110+, Safari 15.4 - 16.3+
+	// Make sure the the `:has()` argument is parsed unforgivingly.
+	// We include `*` in the test to detect buggy implementations that are
+	// _selectively_ forgiving (specifically when the list includes at least
+	// one valid selector).
+	// Note that we treat complete lack of support for `:has()` as if it were
+	// spec-compliant support, which is fine because use of `:has()` in such
+	// environments will fail in the qSA path and fall back to jQuery traversal
+	// anyway.
+	support.cssHas = assert( function() {
+		try {
+			document.querySelector( ":has(*,:jqfake)" );
+			return false;
+		} catch ( e ) {
+			return true;
+		}
+	} );
+
 	/* Attributes
 	---------------------------------------------------------------------- */
 
@@ -29709,6 +28079,17 @@ setDocument = Sizzle.setDocument = function( node ) {
 		} );
 	}
 
+	if ( !support.cssHas ) {
+
+		// Support: Chrome 105 - 110+, Safari 15.4 - 16.3+
+		// Our regular `try-catch` mechanism fails to detect natively-unsupported
+		// pseudo-classes inside `:has()` (such as `:has(:contains("Foo"))`)
+		// in browsers that parse the `:has()` argument as a forgiving selector list.
+		// https://drafts.csswg.org/selectors/#relational now requires the argument
+		// to be parsed unforgivingly, but browsers have not yet fully adjusted.
+		rbuggyQSA.push( ":has" );
+	}
+
 	rbuggyQSA = rbuggyQSA.length && new RegExp( rbuggyQSA.join( "|" ) );
 	rbuggyMatches = rbuggyMatches.length && new RegExp( rbuggyMatches.join( "|" ) );
 
@@ -29721,7 +28102,14 @@ setDocument = Sizzle.setDocument = function( node ) {
 	// As in, an element does not contain itself
 	contains = hasCompare || rnative.test( docElem.contains ) ?
 		function( a, b ) {
-			var adown = a.nodeType === 9 ? a.documentElement : a,
+
+			// Support: IE <9 only
+			// IE doesn't have `contains` on `document` so we need to check for
+			// `documentElement` presence.
+			// We need to fall back to `a` when `documentElement` is missing
+			// as `ownerDocument` of elements within `<template/>` may have
+			// a null one - a default behavior of all modern browsers.
+			var adown = a.nodeType === 9 && a.documentElement || a,
 				bup = b && b.parentNode;
 			return a === bup || !!( bup && bup.nodeType === 1 && (
 				adown.contains ?
@@ -30511,7 +28899,7 @@ Expr = Sizzle.selectors = {
 			return elem.nodeName.toLowerCase() === "input" &&
 				elem.type === "text" &&
 
-				// Support: IE<8
+				// Support: IE <10 only
 				// New HTML5 attribute values (e.g., "search") appear with elem.type === "text"
 				( ( attr = elem.getAttribute( "type" ) ) == null ||
 					attr.toLowerCase() === "text" );
@@ -30611,7 +28999,7 @@ tokenize = Sizzle.tokenize = function( selector, parseOnly ) {
 		matched = false;
 
 		// Combinators
-		if ( ( match = rcombinators.exec( soFar ) ) ) {
+		if ( ( match = rleadingCombinator.exec( soFar ) ) ) {
 			matched = match.shift();
 			tokens.push( {
 				value: matched,
@@ -31398,8 +29786,8 @@ jQuery.fn.extend( {
 var rootjQuery,
 
 	// A simple way to check for HTML strings
-	// Prioritize #id over <tag> to avoid XSS via location.hash (#9521)
-	// Strict HTML recognition (#11290: must start with <)
+	// Prioritize #id over <tag> to avoid XSS via location.hash (trac-9521)
+	// Strict HTML recognition (trac-11290: must start with <)
 	// Shortcut simple #id case for speed
 	rquickExpr = /^(?:\s*(<[\w\W]+>)[^>]*|#([\w-]+))$/,
 
@@ -32356,7 +30744,7 @@ jQuery.extend( {
 	isReady: false,
 
 	// A counter to track how many items to wait for before
-	// the ready event fires. See #6781
+	// the ready event fires. See trac-6781
 	readyWait: 1,
 
 	// Handle when the DOM is ready
@@ -32484,7 +30872,7 @@ function fcamelCase( _all, letter ) {
 
 // Convert dashed to camelCase; used by the css and data modules
 // Support: IE <=9 - 11, Edge 12 - 15
-// Microsoft forgot to hump their vendor prefix (#9572)
+// Microsoft forgot to hump their vendor prefix (trac-9572)
 function camelCase( string ) {
 	return string.replace( rmsPrefix, "ms-" ).replace( rdashAlpha, fcamelCase );
 }
@@ -32520,7 +30908,7 @@ Data.prototype = {
 			value = {};
 
 			// We can accept data for non-element nodes in modern browsers,
-			// but we should not, see #8335.
+			// but we should not, see trac-8335.
 			// Always return an empty object.
 			if ( acceptData( owner ) ) {
 
@@ -32759,7 +31147,7 @@ jQuery.fn.extend( {
 					while ( i-- ) {
 
 						// Support: IE 11 only
-						// The attrs elements can be null (#14894)
+						// The attrs elements can be null (trac-14894)
 						if ( attrs[ i ] ) {
 							name = attrs[ i ].name;
 							if ( name.indexOf( "data-" ) === 0 ) {
@@ -33182,9 +31570,9 @@ var rscriptType = ( /^$|^module$|\/(?:java|ecma)script/i );
 		input = document.createElement( "input" );
 
 	// Support: Android 4.0 - 4.3 only
-	// Check state lost if the name is set (#11217)
+	// Check state lost if the name is set (trac-11217)
 	// Support: Windows Web Apps (WWA)
-	// `name` and `type` must use .setAttribute for WWA (#14901)
+	// `name` and `type` must use .setAttribute for WWA (trac-14901)
 	input.setAttribute( "type", "radio" );
 	input.setAttribute( "checked", "checked" );
 	input.setAttribute( "name", "t" );
@@ -33208,7 +31596,7 @@ var rscriptType = ( /^$|^module$|\/(?:java|ecma)script/i );
 } )();
 
 
-// We have to close these tags to support XHTML (#13200)
+// We have to close these tags to support XHTML (trac-13200)
 var wrapMap = {
 
 	// XHTML parsers do not magically insert elements in the
@@ -33234,7 +31622,7 @@ if ( !support.option ) {
 function getAll( context, tag ) {
 
 	// Support: IE <=9 - 11 only
-	// Use typeof to avoid zero-argument method invocation on host objects (#15151)
+	// Use typeof to avoid zero-argument method invocation on host objects (trac-15151)
 	var ret;
 
 	if ( typeof context.getElementsByTagName !== "undefined" ) {
@@ -33317,7 +31705,7 @@ function buildFragment( elems, context, scripts, selection, ignored ) {
 				// Remember the top-level container
 				tmp = fragment.firstChild;
 
-				// Ensure the created nodes are orphaned (#12392)
+				// Ensure the created nodes are orphaned (trac-12392)
 				tmp.textContent = "";
 			}
 		}
@@ -33738,15 +32126,15 @@ jQuery.event = {
 
 			for ( ; cur !== this; cur = cur.parentNode || this ) {
 
-				// Don't check non-elements (#13208)
-				// Don't process clicks on disabled elements (#6911, #8165, #11382, #11764)
+				// Don't check non-elements (trac-13208)
+				// Don't process clicks on disabled elements (trac-6911, trac-8165, trac-11382, trac-11764)
 				if ( cur.nodeType === 1 && !( event.type === "click" && cur.disabled === true ) ) {
 					matchedHandlers = [];
 					matchedSelectors = {};
 					for ( i = 0; i < delegateCount; i++ ) {
 						handleObj = handlers[ i ];
 
-						// Don't conflict with Object.prototype properties (#13203)
+						// Don't conflict with Object.prototype properties (trac-13203)
 						sel = handleObj.selector + " ";
 
 						if ( matchedSelectors[ sel ] === undefined ) {
@@ -34000,7 +32388,7 @@ jQuery.Event = function( src, props ) {
 
 		// Create target properties
 		// Support: Safari <=6 - 7 only
-		// Target should not be a text node (#504, #13143)
+		// Target should not be a text node (trac-504, trac-13143)
 		this.target = ( src.target && src.target.nodeType === 3 ) ?
 			src.target.parentNode :
 			src.target;
@@ -34123,10 +32511,10 @@ jQuery.each( { focus: "focusin", blur: "focusout" }, function( type, delegateTyp
 			return true;
 		},
 
-		// Suppress native focus or blur as it's already being fired
-		// in leverageNative.
-		_default: function() {
-			return true;
+		// Suppress native focus or blur if we're currently inside
+		// a leveraged native-event stack
+		_default: function( event ) {
+			return dataPriv.get( event.target, type );
 		},
 
 		delegateType: delegateType
@@ -34225,7 +32613,8 @@ var
 
 	// checked="checked" or checked
 	rchecked = /checked\s*(?:[^=]|=\s*.checked.)/i,
-	rcleanScript = /^\s*<!(?:\[CDATA\[|--)|(?:\]\]|--)>\s*$/g;
+
+	rcleanScript = /^\s*<!\[CDATA\[|\]\]>\s*$/g;
 
 // Prefer a tbody over its parent table for containing new rows
 function manipulationTarget( elem, content ) {
@@ -34339,7 +32728,7 @@ function domManip( collection, args, callback, ignored ) {
 
 			// Use the original fragment for the last item
 			// instead of the first because it can end up
-			// being emptied incorrectly in certain situations (#8070).
+			// being emptied incorrectly in certain situations (trac-8070).
 			for ( ; i < l; i++ ) {
 				node = fragment;
 
@@ -34380,6 +32769,12 @@ function domManip( collection, args, callback, ignored ) {
 								}, doc );
 							}
 						} else {
+
+							// Unwrap a CDATA section containing script contents. This shouldn't be
+							// needed as in XML documents they're already not visible when
+							// inspecting element contents and in HTML documents they have no
+							// meaning but we're preserving that logic for backwards compatibility.
+							// This will be removed completely in 4.0. See gh-4904.
 							DOMEval( node.textContent.replace( rcleanScript, "" ), node, doc );
 						}
 					}
@@ -34662,9 +33057,12 @@ jQuery.each( {
 } );
 var rnumnonpx = new RegExp( "^(" + pnum + ")(?!px)[a-z%]+$", "i" );
 
+var rcustomProp = /^--/;
+
+
 var getStyles = function( elem ) {
 
-		// Support: IE <=11 only, Firefox <=30 (#15098, #14150)
+		// Support: IE <=11 only, Firefox <=30 (trac-15098, trac-14150)
 		// IE throws on elements created in popups
 		// FF meanwhile throws on frame elements through "defaultView.getComputedStyle"
 		var view = elem.ownerDocument.defaultView;
@@ -34698,6 +33096,15 @@ var swap = function( elem, options, callback ) {
 
 
 var rboxStyle = new RegExp( cssExpand.join( "|" ), "i" );
+
+var whitespace = "[\\x20\\t\\r\\n\\f]";
+
+
+var rtrimCSS = new RegExp(
+	"^" + whitespace + "+|((?:^|[^\\\\])(?:\\\\.)*)" + whitespace + "+$",
+	"g"
+);
+
 
 
 
@@ -34764,7 +33171,7 @@ var rboxStyle = new RegExp( cssExpand.join( "|" ), "i" );
 	}
 
 	// Support: IE <=9 - 11 only
-	// Style of cloned element affects source element cloned (#8908)
+	// Style of cloned element affects source element cloned (trac-8908)
 	div.style.backgroundClip = "content-box";
 	div.cloneNode( true ).style.backgroundClip = "";
 	support.clearCloneStyle = div.style.backgroundClip === "content-box";
@@ -34844,6 +33251,7 @@ var rboxStyle = new RegExp( cssExpand.join( "|" ), "i" );
 
 function curCSS( elem, name, computed ) {
 	var width, minWidth, maxWidth, ret,
+		isCustomProp = rcustomProp.test( name ),
 
 		// Support: Firefox 51+
 		// Retrieving style before computed somehow
@@ -34854,10 +33262,41 @@ function curCSS( elem, name, computed ) {
 	computed = computed || getStyles( elem );
 
 	// getPropertyValue is needed for:
-	//   .css('filter') (IE 9 only, #12537)
-	//   .css('--customProperty) (#3144)
+	//   .css('filter') (IE 9 only, trac-12537)
+	//   .css('--customProperty) (gh-3144)
 	if ( computed ) {
+
+		// Support: IE <=9 - 11+
+		// IE only supports `"float"` in `getPropertyValue`; in computed styles
+		// it's only available as `"cssFloat"`. We no longer modify properties
+		// sent to `.css()` apart from camelCasing, so we need to check both.
+		// Normally, this would create difference in behavior: if
+		// `getPropertyValue` returns an empty string, the value returned
+		// by `.css()` would be `undefined`. This is usually the case for
+		// disconnected elements. However, in IE even disconnected elements
+		// with no styles return `"none"` for `getPropertyValue( "float" )`
 		ret = computed.getPropertyValue( name ) || computed[ name ];
+
+		if ( isCustomProp && ret ) {
+
+			// Support: Firefox 105+, Chrome <=105+
+			// Spec requires trimming whitespace for custom properties (gh-4926).
+			// Firefox only trims leading whitespace. Chrome just collapses
+			// both leading & trailing whitespace to a single space.
+			//
+			// Fall back to `undefined` if empty string returned.
+			// This collapses a missing definition with property defined
+			// and set to an empty string but there's no standard API
+			// allowing us to differentiate them without a performance penalty
+			// and returning `undefined` aligns with older jQuery.
+			//
+			// rtrimCSS treats U+000D CARRIAGE RETURN and U+000C FORM FEED
+			// as whitespace while CSS does not, but this is not a problem
+			// because CSS preprocessing replaces them with U+000A LINE FEED
+			// (which *is* CSS whitespace)
+			// https://www.w3.org/TR/css-syntax-3/#input-preprocessing
+			ret = ret.replace( rtrimCSS, "$1" ) || undefined;
+		}
 
 		if ( ret === "" && !isAttached( elem ) ) {
 			ret = jQuery.style( elem, name );
@@ -34954,7 +33393,6 @@ var
 	// except "table", "table-cell", or "table-caption"
 	// See here for display values: https://developer.mozilla.org/en-US/docs/CSS/display
 	rdisplayswap = /^(none|table(?!-c[ea]).+)/,
-	rcustomProp = /^--/,
 	cssShow = { position: "absolute", visibility: "hidden", display: "block" },
 	cssNormalTransform = {
 		letterSpacing: "0",
@@ -35190,15 +33628,15 @@ jQuery.extend( {
 		if ( value !== undefined ) {
 			type = typeof value;
 
-			// Convert "+=" or "-=" to relative numbers (#7345)
+			// Convert "+=" or "-=" to relative numbers (trac-7345)
 			if ( type === "string" && ( ret = rcssNum.exec( value ) ) && ret[ 1 ] ) {
 				value = adjustCSS( elem, name, ret );
 
-				// Fixes bug #9237
+				// Fixes bug trac-9237
 				type = "number";
 			}
 
-			// Make sure that null and NaN values aren't set (#7116)
+			// Make sure that null and NaN values aren't set (trac-7116)
 			if ( value == null || value !== value ) {
 				return;
 			}
@@ -35822,7 +34260,7 @@ function Animation( elem, properties, options ) {
 				remaining = Math.max( 0, animation.startTime + animation.duration - currentTime ),
 
 				// Support: Android 2.3 only
-				// Archaic crash bug won't allow us to use `1 - ( 0.5 || 0 )` (#12497)
+				// Archaic crash bug won't allow us to use `1 - ( 0.5 || 0 )` (trac-12497)
 				temp = remaining / animation.duration || 0,
 				percent = 1 - temp,
 				index = 0,
@@ -36212,7 +34650,6 @@ jQuery.fx.speeds = {
 
 
 // Based off of the plugin by Clint Helfers, with permission.
-// https://web.archive.org/web/20100324014747/http://blindsignals.com/index.php/2009/07/jquery-delay/
 jQuery.fn.delay = function( time, type ) {
 	time = jQuery.fx ? jQuery.fx.speeds[ time ] || time : time;
 	type = type || "fx";
@@ -36437,8 +34874,7 @@ jQuery.extend( {
 				// Support: IE <=9 - 11 only
 				// elem.tabIndex doesn't always return the
 				// correct value when it hasn't been explicitly set
-				// https://web.archive.org/web/20141116233347/http://fluidproject.org/blog/2008/01/09/getting-setting-and-removing-tabindex-values-with-javascript/
-				// Use proper attribute retrieval(#12072)
+				// Use proper attribute retrieval (trac-12072)
 				var tabindex = jQuery.find.attr( elem, "tabindex" );
 
 				if ( tabindex ) {
@@ -36542,8 +34978,7 @@ function classesToArray( value ) {
 
 jQuery.fn.extend( {
 	addClass: function( value ) {
-		var classes, elem, cur, curValue, clazz, j, finalValue,
-			i = 0;
+		var classNames, cur, curValue, className, i, finalValue;
 
 		if ( isFunction( value ) ) {
 			return this.each( function( j ) {
@@ -36551,36 +34986,35 @@ jQuery.fn.extend( {
 			} );
 		}
 
-		classes = classesToArray( value );
+		classNames = classesToArray( value );
 
-		if ( classes.length ) {
-			while ( ( elem = this[ i++ ] ) ) {
-				curValue = getClass( elem );
-				cur = elem.nodeType === 1 && ( " " + stripAndCollapse( curValue ) + " " );
+		if ( classNames.length ) {
+			return this.each( function() {
+				curValue = getClass( this );
+				cur = this.nodeType === 1 && ( " " + stripAndCollapse( curValue ) + " " );
 
 				if ( cur ) {
-					j = 0;
-					while ( ( clazz = classes[ j++ ] ) ) {
-						if ( cur.indexOf( " " + clazz + " " ) < 0 ) {
-							cur += clazz + " ";
+					for ( i = 0; i < classNames.length; i++ ) {
+						className = classNames[ i ];
+						if ( cur.indexOf( " " + className + " " ) < 0 ) {
+							cur += className + " ";
 						}
 					}
 
 					// Only assign if different to avoid unneeded rendering.
 					finalValue = stripAndCollapse( cur );
 					if ( curValue !== finalValue ) {
-						elem.setAttribute( "class", finalValue );
+						this.setAttribute( "class", finalValue );
 					}
 				}
-			}
+			} );
 		}
 
 		return this;
 	},
 
 	removeClass: function( value ) {
-		var classes, elem, cur, curValue, clazz, j, finalValue,
-			i = 0;
+		var classNames, cur, curValue, className, i, finalValue;
 
 		if ( isFunction( value ) ) {
 			return this.each( function( j ) {
@@ -36592,44 +35026,41 @@ jQuery.fn.extend( {
 			return this.attr( "class", "" );
 		}
 
-		classes = classesToArray( value );
+		classNames = classesToArray( value );
 
-		if ( classes.length ) {
-			while ( ( elem = this[ i++ ] ) ) {
-				curValue = getClass( elem );
+		if ( classNames.length ) {
+			return this.each( function() {
+				curValue = getClass( this );
 
 				// This expression is here for better compressibility (see addClass)
-				cur = elem.nodeType === 1 && ( " " + stripAndCollapse( curValue ) + " " );
+				cur = this.nodeType === 1 && ( " " + stripAndCollapse( curValue ) + " " );
 
 				if ( cur ) {
-					j = 0;
-					while ( ( clazz = classes[ j++ ] ) ) {
+					for ( i = 0; i < classNames.length; i++ ) {
+						className = classNames[ i ];
 
 						// Remove *all* instances
-						while ( cur.indexOf( " " + clazz + " " ) > -1 ) {
-							cur = cur.replace( " " + clazz + " ", " " );
+						while ( cur.indexOf( " " + className + " " ) > -1 ) {
+							cur = cur.replace( " " + className + " ", " " );
 						}
 					}
 
 					// Only assign if different to avoid unneeded rendering.
 					finalValue = stripAndCollapse( cur );
 					if ( curValue !== finalValue ) {
-						elem.setAttribute( "class", finalValue );
+						this.setAttribute( "class", finalValue );
 					}
 				}
-			}
+			} );
 		}
 
 		return this;
 	},
 
 	toggleClass: function( value, stateVal ) {
-		var type = typeof value,
+		var classNames, className, i, self,
+			type = typeof value,
 			isValidValue = type === "string" || Array.isArray( value );
-
-		if ( typeof stateVal === "boolean" && isValidValue ) {
-			return stateVal ? this.addClass( value ) : this.removeClass( value );
-		}
 
 		if ( isFunction( value ) ) {
 			return this.each( function( i ) {
@@ -36640,17 +35071,20 @@ jQuery.fn.extend( {
 			} );
 		}
 
-		return this.each( function() {
-			var className, i, self, classNames;
+		if ( typeof stateVal === "boolean" && isValidValue ) {
+			return stateVal ? this.addClass( value ) : this.removeClass( value );
+		}
 
+		classNames = classesToArray( value );
+
+		return this.each( function() {
 			if ( isValidValue ) {
 
 				// Toggle individual class names
-				i = 0;
 				self = jQuery( this );
-				classNames = classesToArray( value );
 
-				while ( ( className = classNames[ i++ ] ) ) {
+				for ( i = 0; i < classNames.length; i++ ) {
+					className = classNames[ i ];
 
 					// Check each className given, space separated list
 					if ( self.hasClass( className ) ) {
@@ -36784,7 +35218,7 @@ jQuery.extend( {
 					val :
 
 					// Support: IE <=10 - 11 only
-					// option.text throws exceptions (#14686, #14858)
+					// option.text throws exceptions (trac-14686, trac-14858)
 					// Strip and collapse whitespace
 					// https://html.spec.whatwg.org/#strip-and-collapse-whitespace
 					stripAndCollapse( jQuery.text( elem ) );
@@ -36811,7 +35245,7 @@ jQuery.extend( {
 					option = options[ i ];
 
 					// Support: IE <=9 only
-					// IE8-9 doesn't update selected after form reset (#2551)
+					// IE8-9 doesn't update selected after form reset (trac-2551)
 					if ( ( option.selected || i === index ) &&
 
 							// Don't return options that are disabled or in a disabled optgroup
@@ -36954,8 +35388,8 @@ jQuery.extend( jQuery.event, {
 			return;
 		}
 
-		// Determine event propagation path in advance, per W3C events spec (#9951)
-		// Bubble up to document, then to window; watch for a global ownerDocument var (#9724)
+		// Determine event propagation path in advance, per W3C events spec (trac-9951)
+		// Bubble up to document, then to window; watch for a global ownerDocument var (trac-9724)
 		if ( !onlyHandlers && !special.noBubble && !isWindow( elem ) ) {
 
 			bubbleType = special.delegateType || type;
@@ -37007,7 +35441,7 @@ jQuery.extend( jQuery.event, {
 				acceptData( elem ) ) {
 
 				// Call a native DOM method on the target with the same name as the event.
-				// Don't do default actions on window, that's where global variables be (#6170)
+				// Don't do default actions on window, that's where global variables be (trac-6170)
 				if ( ontype && isFunction( elem[ type ] ) && !isWindow( elem ) ) {
 
 					// Don't re-trigger an onFOO event when we call its FOO() method
@@ -37281,7 +35715,7 @@ var
 	rantiCache = /([?&])_=[^&]*/,
 	rheaders = /^(.*?):[ \t]*([^\r\n]*)$/mg,
 
-	// #7653, #8125, #8152: local protocol detection
+	// trac-7653, trac-8125, trac-8152: local protocol detection
 	rlocalProtocol = /^(?:about|app|app-storage|.+-extension|file|res|widget):$/,
 	rnoContent = /^(?:GET|HEAD)$/,
 	rprotocol = /^\/\//,
@@ -37304,7 +35738,7 @@ var
 	 */
 	transports = {},
 
-	// Avoid comment-prolog char sequence (#10098); must appease lint and evade compression
+	// Avoid comment-prolog char sequence (trac-10098); must appease lint and evade compression
 	allTypes = "*/".concat( "*" ),
 
 	// Anchor tag for parsing the document origin
@@ -37375,7 +35809,7 @@ function inspectPrefiltersOrTransports( structure, options, originalOptions, jqX
 
 // A special extend for ajax options
 // that takes "flat" options (not to be deep extended)
-// Fixes #9887
+// Fixes trac-9887
 function ajaxExtend( target, src ) {
 	var key, deep,
 		flatOptions = jQuery.ajaxSettings.flatOptions || {};
@@ -37786,12 +36220,12 @@ jQuery.extend( {
 		deferred.promise( jqXHR );
 
 		// Add protocol if not provided (prefilters might expect it)
-		// Handle falsy url in the settings object (#10093: consistency with old signature)
+		// Handle falsy url in the settings object (trac-10093: consistency with old signature)
 		// We also use the url parameter if available
 		s.url = ( ( url || s.url || location.href ) + "" )
 			.replace( rprotocol, location.protocol + "//" );
 
-		// Alias method option to type as per ticket #12004
+		// Alias method option to type as per ticket trac-12004
 		s.type = options.method || options.type || s.method || s.type;
 
 		// Extract dataTypes list
@@ -37834,7 +36268,7 @@ jQuery.extend( {
 		}
 
 		// We can fire global events as of now if asked to
-		// Don't fire events if jQuery.event is undefined in an AMD-usage scenario (#15118)
+		// Don't fire events if jQuery.event is undefined in an AMD-usage scenario (trac-15118)
 		fireGlobals = jQuery.event && s.global;
 
 		// Watch for a new set of requests
@@ -37863,7 +36297,7 @@ jQuery.extend( {
 			if ( s.data && ( s.processData || typeof s.data === "string" ) ) {
 				cacheURL += ( rquery.test( cacheURL ) ? "&" : "?" ) + s.data;
 
-				// #9682: remove data so that it's not used in an eventual retry
+				// trac-9682: remove data so that it's not used in an eventual retry
 				delete s.data;
 			}
 
@@ -38136,7 +36570,7 @@ jQuery._evalUrl = function( url, options, doc ) {
 	return jQuery.ajax( {
 		url: url,
 
-		// Make this explicit, since user can override this through ajaxSetup (#11264)
+		// Make this explicit, since user can override this through ajaxSetup (trac-11264)
 		type: "GET",
 		dataType: "script",
 		cache: true,
@@ -38245,7 +36679,7 @@ var xhrSuccessStatus = {
 		0: 200,
 
 		// Support: IE <=9 only
-		// #1450: sometimes IE returns 1223 when it should be 204
+		// trac-1450: sometimes IE returns 1223 when it should be 204
 		1223: 204
 	},
 	xhrSupported = jQuery.ajaxSettings.xhr();
@@ -38317,7 +36751,7 @@ jQuery.ajaxTransport( function( options ) {
 								} else {
 									complete(
 
-										// File: protocol always yields status 0; see #8605, #14207
+										// File: protocol always yields status 0; see trac-8605, trac-14207
 										xhr.status,
 										xhr.statusText
 									);
@@ -38378,7 +36812,7 @@ jQuery.ajaxTransport( function( options ) {
 					xhr.send( options.hasContent && options.data || null );
 				} catch ( e ) {
 
-					// #14683: Only rethrow if this hasn't been notified as an error yet
+					// trac-14683: Only rethrow if this hasn't been notified as an error yet
 					if ( callback ) {
 						throw e;
 					}
@@ -39022,7 +37456,9 @@ jQuery.each(
 
 // Support: Android <=4.0 only
 // Make sure we trim BOM and NBSP
-var rtrim = /^[\s\uFEFF\xA0]+|[\s\uFEFF\xA0]+$/g;
+// Require that the "whitespace run" starts from a non-whitespace
+// to avoid O(N^2) behavior when the engine would try matching "\s+$" at each space position.
+var rtrim = /^[\s\uFEFF\xA0]+|([^\s\uFEFF\xA0])[\s\uFEFF\xA0]+$/g;
 
 // Bind a function to a context, optionally partially applying any
 // arguments.
@@ -39089,7 +37525,7 @@ jQuery.isNumeric = function( obj ) {
 jQuery.trim = function( text ) {
 	return text == null ?
 		"" :
-		( text + "" ).replace( rtrim, "" );
+		( text + "" ).replace( rtrim, "$1" );
 };
 
 
@@ -39138,8 +37574,8 @@ jQuery.noConflict = function( deep ) {
 };
 
 // Expose jQuery and $ identifiers, even in AMD
-// (#7102#comment:10, https://github.com/jquery/jquery/pull/557)
-// and CommonJS for browser emulators (#13566)
+// (trac-7102#comment:10, https://github.com/jquery/jquery/pull/557)
+// and CommonJS for browser emulators (trac-13566)
 if ( typeof noGlobal === "undefined" ) {
 	window.jQuery = window.$ = jQuery;
 }
@@ -56608,10 +55044,10 @@ process.umask = function() { return 0; };
     var slug = string.normalize().split('')
       // replace characters based on charMap
       .reduce(function (result, ch) {
-        var appendChar = locale[ch] || charMap[ch] || ch;
-        if (appendChar === replacement) {
-          appendChar = ' ';
-        }
+        var appendChar = locale[ch];
+        if (appendChar === undefined) appendChar = charMap[ch];
+        if (appendChar === undefined) appendChar = ch;
+        if (appendChar === replacement) appendChar = ' ';
         return result + appendChar
           // remove not allowed characters
           .replace(options.remove || /[^\w\s$*_+~.()'"!\-:@]+/g, '')
@@ -61309,7 +59745,7 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony import */ var _switches_vue_vue_type_template_id_f8bdc788__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./switches.vue?vue&type=template&id=f8bdc788 */ "./node_modules/vue-switches/src/switches.vue?vue&type=template&id=f8bdc788");
 /* harmony import */ var _switches_vue_vue_type_script_lang_js__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ./switches.vue?vue&type=script&lang=js */ "./node_modules/vue-switches/src/switches.vue?vue&type=script&lang=js");
 /* harmony import */ var _dist_switches_css_vue_type_style_index_0_lang_css__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! ./../dist/switches.css?vue&type=style&index=0&lang=css */ "./node_modules/vue-switches/dist/switches.css?vue&type=style&index=0&lang=css");
-/* harmony import */ var C_xampp_htdocs_haydarbas_dev_node_modules_vue_loader_dist_exportHelper_js__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! ./node_modules/vue-loader/dist/exportHelper.js */ "./node_modules/vue-loader/dist/exportHelper.js");
+/* harmony import */ var C_xamp_htdocs_hbenstitu_node_modules_vue_loader_dist_exportHelper_js__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! ./node_modules/vue-loader/dist/exportHelper.js */ "./node_modules/vue-loader/dist/exportHelper.js");
 
 
 
@@ -61317,7 +59753,7 @@ __webpack_require__.r(__webpack_exports__);
 ;
 
 
-const __exports__ = /*#__PURE__*/(0,C_xampp_htdocs_haydarbas_dev_node_modules_vue_loader_dist_exportHelper_js__WEBPACK_IMPORTED_MODULE_3__["default"])(_switches_vue_vue_type_script_lang_js__WEBPACK_IMPORTED_MODULE_1__["default"], [['render',_switches_vue_vue_type_template_id_f8bdc788__WEBPACK_IMPORTED_MODULE_0__.render],['__file',"node_modules/vue-switches/src/switches.vue"]])
+const __exports__ = /*#__PURE__*/(0,C_xamp_htdocs_hbenstitu_node_modules_vue_loader_dist_exportHelper_js__WEBPACK_IMPORTED_MODULE_3__["default"])(_switches_vue_vue_type_script_lang_js__WEBPACK_IMPORTED_MODULE_1__["default"], [['render',_switches_vue_vue_type_template_id_f8bdc788__WEBPACK_IMPORTED_MODULE_0__.render],['__file',"node_modules/vue-switches/src/switches.vue"]])
 /* hot reload */
 if (false) {}
 
@@ -61433,7 +59869,7 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony import */ var _menu_vue_vue_type_template_id_b9d957d4__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./menu.vue?vue&type=template&id=b9d957d4 */ "./resources/js/componets/menu.vue?vue&type=template&id=b9d957d4");
 /* harmony import */ var _menu_vue_vue_type_script_lang_js__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ./menu.vue?vue&type=script&lang=js */ "./resources/js/componets/menu.vue?vue&type=script&lang=js");
 /* harmony import */ var _menu_vue_vue_type_style_index_0_id_b9d957d4_lang_css__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! ./menu.vue?vue&type=style&index=0&id=b9d957d4&lang=css */ "./resources/js/componets/menu.vue?vue&type=style&index=0&id=b9d957d4&lang=css");
-/* harmony import */ var C_xampp_htdocs_haydarbas_dev_node_modules_vue_loader_dist_exportHelper_js__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! ./node_modules/vue-loader/dist/exportHelper.js */ "./node_modules/vue-loader/dist/exportHelper.js");
+/* harmony import */ var C_xamp_htdocs_hbenstitu_node_modules_vue_loader_dist_exportHelper_js__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! ./node_modules/vue-loader/dist/exportHelper.js */ "./node_modules/vue-loader/dist/exportHelper.js");
 
 
 
@@ -61441,7 +59877,7 @@ __webpack_require__.r(__webpack_exports__);
 ;
 
 
-const __exports__ = /*#__PURE__*/(0,C_xampp_htdocs_haydarbas_dev_node_modules_vue_loader_dist_exportHelper_js__WEBPACK_IMPORTED_MODULE_3__["default"])(_menu_vue_vue_type_script_lang_js__WEBPACK_IMPORTED_MODULE_1__["default"], [['render',_menu_vue_vue_type_template_id_b9d957d4__WEBPACK_IMPORTED_MODULE_0__.render],['__file',"resources/js/componets/menu.vue"]])
+const __exports__ = /*#__PURE__*/(0,C_xamp_htdocs_hbenstitu_node_modules_vue_loader_dist_exportHelper_js__WEBPACK_IMPORTED_MODULE_3__["default"])(_menu_vue_vue_type_script_lang_js__WEBPACK_IMPORTED_MODULE_1__["default"], [['render',_menu_vue_vue_type_template_id_b9d957d4__WEBPACK_IMPORTED_MODULE_0__.render],['__file',"resources/js/componets/menu.vue"]])
 /* hot reload */
 if (false) {}
 
@@ -61462,12 +59898,12 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony export */   "default": () => (__WEBPACK_DEFAULT_EXPORT__)
 /* harmony export */ });
 /* harmony import */ var _menubuttons_vue_vue_type_template_id_c0a7c34a__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./menubuttons.vue?vue&type=template&id=c0a7c34a */ "./resources/js/componets/menubuttons.vue?vue&type=template&id=c0a7c34a");
-/* harmony import */ var C_xampp_htdocs_haydarbas_dev_node_modules_vue_loader_dist_exportHelper_js__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ./node_modules/vue-loader/dist/exportHelper.js */ "./node_modules/vue-loader/dist/exportHelper.js");
+/* harmony import */ var C_xamp_htdocs_hbenstitu_node_modules_vue_loader_dist_exportHelper_js__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ./node_modules/vue-loader/dist/exportHelper.js */ "./node_modules/vue-loader/dist/exportHelper.js");
 
 const script = {}
 
 ;
-const __exports__ = /*#__PURE__*/(0,C_xampp_htdocs_haydarbas_dev_node_modules_vue_loader_dist_exportHelper_js__WEBPACK_IMPORTED_MODULE_1__["default"])(script, [['render',_menubuttons_vue_vue_type_template_id_c0a7c34a__WEBPACK_IMPORTED_MODULE_0__.render],['__file',"resources/js/componets/menubuttons.vue"]])
+const __exports__ = /*#__PURE__*/(0,C_xamp_htdocs_hbenstitu_node_modules_vue_loader_dist_exportHelper_js__WEBPACK_IMPORTED_MODULE_1__["default"])(script, [['render',_menubuttons_vue_vue_type_template_id_c0a7c34a__WEBPACK_IMPORTED_MODULE_0__.render],['__file',"resources/js/componets/menubuttons.vue"]])
 /* hot reload */
 if (false) {}
 
@@ -61490,7 +59926,7 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony import */ var _slugify_vue_vue_type_template_id_31d362ec__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./slugify.vue?vue&type=template&id=31d362ec */ "./resources/js/componets/slugify.vue?vue&type=template&id=31d362ec");
 /* harmony import */ var _slugify_vue_vue_type_script_lang_js__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ./slugify.vue?vue&type=script&lang=js */ "./resources/js/componets/slugify.vue?vue&type=script&lang=js");
 /* harmony import */ var _slugify_vue_vue_type_style_index_0_id_31d362ec_lang_scss__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! ./slugify.vue?vue&type=style&index=0&id=31d362ec&lang=scss */ "./resources/js/componets/slugify.vue?vue&type=style&index=0&id=31d362ec&lang=scss");
-/* harmony import */ var C_xampp_htdocs_haydarbas_dev_node_modules_vue_loader_dist_exportHelper_js__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! ./node_modules/vue-loader/dist/exportHelper.js */ "./node_modules/vue-loader/dist/exportHelper.js");
+/* harmony import */ var C_xamp_htdocs_hbenstitu_node_modules_vue_loader_dist_exportHelper_js__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! ./node_modules/vue-loader/dist/exportHelper.js */ "./node_modules/vue-loader/dist/exportHelper.js");
 
 
 
@@ -61498,7 +59934,7 @@ __webpack_require__.r(__webpack_exports__);
 ;
 
 
-const __exports__ = /*#__PURE__*/(0,C_xampp_htdocs_haydarbas_dev_node_modules_vue_loader_dist_exportHelper_js__WEBPACK_IMPORTED_MODULE_3__["default"])(_slugify_vue_vue_type_script_lang_js__WEBPACK_IMPORTED_MODULE_1__["default"], [['render',_slugify_vue_vue_type_template_id_31d362ec__WEBPACK_IMPORTED_MODULE_0__.render],['__file',"resources/js/componets/slugify.vue"]])
+const __exports__ = /*#__PURE__*/(0,C_xamp_htdocs_hbenstitu_node_modules_vue_loader_dist_exportHelper_js__WEBPACK_IMPORTED_MODULE_3__["default"])(_slugify_vue_vue_type_script_lang_js__WEBPACK_IMPORTED_MODULE_1__["default"], [['render',_slugify_vue_vue_type_template_id_31d362ec__WEBPACK_IMPORTED_MODULE_0__.render],['__file',"resources/js/componets/slugify.vue"]])
 /* hot reload */
 if (false) {}
 
@@ -61521,7 +59957,7 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony import */ var _tags_vue_vue_type_template_id_cad6f460_scoped_true__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./tags.vue?vue&type=template&id=cad6f460&scoped=true */ "./resources/js/componets/tags.vue?vue&type=template&id=cad6f460&scoped=true");
 /* harmony import */ var _tags_vue_vue_type_script_lang_js__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ./tags.vue?vue&type=script&lang=js */ "./resources/js/componets/tags.vue?vue&type=script&lang=js");
 /* harmony import */ var _tags_vue_vue_type_style_index_0_id_cad6f460_scoped_true_lang_css__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! ./tags.vue?vue&type=style&index=0&id=cad6f460&scoped=true&lang=css */ "./resources/js/componets/tags.vue?vue&type=style&index=0&id=cad6f460&scoped=true&lang=css");
-/* harmony import */ var C_xampp_htdocs_haydarbas_dev_node_modules_vue_loader_dist_exportHelper_js__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! ./node_modules/vue-loader/dist/exportHelper.js */ "./node_modules/vue-loader/dist/exportHelper.js");
+/* harmony import */ var C_xamp_htdocs_hbenstitu_node_modules_vue_loader_dist_exportHelper_js__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! ./node_modules/vue-loader/dist/exportHelper.js */ "./node_modules/vue-loader/dist/exportHelper.js");
 
 
 
@@ -61529,7 +59965,7 @@ __webpack_require__.r(__webpack_exports__);
 ;
 
 
-const __exports__ = /*#__PURE__*/(0,C_xampp_htdocs_haydarbas_dev_node_modules_vue_loader_dist_exportHelper_js__WEBPACK_IMPORTED_MODULE_3__["default"])(_tags_vue_vue_type_script_lang_js__WEBPACK_IMPORTED_MODULE_1__["default"], [['render',_tags_vue_vue_type_template_id_cad6f460_scoped_true__WEBPACK_IMPORTED_MODULE_0__.render],['__scopeId',"data-v-cad6f460"],['__file',"resources/js/componets/tags.vue"]])
+const __exports__ = /*#__PURE__*/(0,C_xamp_htdocs_hbenstitu_node_modules_vue_loader_dist_exportHelper_js__WEBPACK_IMPORTED_MODULE_3__["default"])(_tags_vue_vue_type_script_lang_js__WEBPACK_IMPORTED_MODULE_1__["default"], [['render',_tags_vue_vue_type_template_id_cad6f460_scoped_true__WEBPACK_IMPORTED_MODULE_0__.render],['__scopeId',"data-v-cad6f460"],['__file',"resources/js/componets/tags.vue"]])
 /* hot reload */
 if (false) {}
 
@@ -61552,7 +59988,7 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony import */ var _upload_photo_vue_vue_type_template_id_4a9aef9d__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./upload-photo.vue?vue&type=template&id=4a9aef9d */ "./resources/js/componets/upload-photo.vue?vue&type=template&id=4a9aef9d");
 /* harmony import */ var _upload_photo_vue_vue_type_script_lang_js__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ./upload-photo.vue?vue&type=script&lang=js */ "./resources/js/componets/upload-photo.vue?vue&type=script&lang=js");
 /* harmony import */ var _upload_photo_vue_vue_type_style_index_0_id_4a9aef9d_lang_scss__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! ./upload-photo.vue?vue&type=style&index=0&id=4a9aef9d&lang=scss */ "./resources/js/componets/upload-photo.vue?vue&type=style&index=0&id=4a9aef9d&lang=scss");
-/* harmony import */ var C_xampp_htdocs_haydarbas_dev_node_modules_vue_loader_dist_exportHelper_js__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! ./node_modules/vue-loader/dist/exportHelper.js */ "./node_modules/vue-loader/dist/exportHelper.js");
+/* harmony import */ var C_xamp_htdocs_hbenstitu_node_modules_vue_loader_dist_exportHelper_js__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! ./node_modules/vue-loader/dist/exportHelper.js */ "./node_modules/vue-loader/dist/exportHelper.js");
 
 
 
@@ -61560,7 +59996,7 @@ __webpack_require__.r(__webpack_exports__);
 ;
 
 
-const __exports__ = /*#__PURE__*/(0,C_xampp_htdocs_haydarbas_dev_node_modules_vue_loader_dist_exportHelper_js__WEBPACK_IMPORTED_MODULE_3__["default"])(_upload_photo_vue_vue_type_script_lang_js__WEBPACK_IMPORTED_MODULE_1__["default"], [['render',_upload_photo_vue_vue_type_template_id_4a9aef9d__WEBPACK_IMPORTED_MODULE_0__.render],['__file',"resources/js/componets/upload-photo.vue"]])
+const __exports__ = /*#__PURE__*/(0,C_xamp_htdocs_hbenstitu_node_modules_vue_loader_dist_exportHelper_js__WEBPACK_IMPORTED_MODULE_3__["default"])(_upload_photo_vue_vue_type_script_lang_js__WEBPACK_IMPORTED_MODULE_1__["default"], [['render',_upload_photo_vue_vue_type_template_id_4a9aef9d__WEBPACK_IMPORTED_MODULE_0__.render],['__file',"resources/js/componets/upload-photo.vue"]])
 /* hot reload */
 if (false) {}
 
@@ -61894,6 +60330,7 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony export */   "Transition": () => (/* reexport safe */ _vue_runtime_dom__WEBPACK_IMPORTED_MODULE_0__.Transition),
 /* harmony export */   "TransitionGroup": () => (/* reexport safe */ _vue_runtime_dom__WEBPACK_IMPORTED_MODULE_0__.TransitionGroup),
 /* harmony export */   "VueElement": () => (/* reexport safe */ _vue_runtime_dom__WEBPACK_IMPORTED_MODULE_0__.VueElement),
+/* harmony export */   "assertNumber": () => (/* reexport safe */ _vue_runtime_dom__WEBPACK_IMPORTED_MODULE_0__.assertNumber),
 /* harmony export */   "callWithAsyncErrorHandling": () => (/* reexport safe */ _vue_runtime_dom__WEBPACK_IMPORTED_MODULE_0__.callWithAsyncErrorHandling),
 /* harmony export */   "callWithErrorHandling": () => (/* reexport safe */ _vue_runtime_dom__WEBPACK_IMPORTED_MODULE_0__.callWithErrorHandling),
 /* harmony export */   "camelize": () => (/* reexport safe */ _vue_runtime_dom__WEBPACK_IMPORTED_MODULE_0__.camelize),
@@ -62030,7 +60467,7 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony import */ var _vue_runtime_dom__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! @vue/runtime-dom */ "./node_modules/@vue/runtime-dom/dist/runtime-dom.esm-bundler.js");
 /* harmony import */ var _vue_runtime_dom__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! @vue/runtime-dom */ "./node_modules/@vue/runtime-core/dist/runtime-core.esm-bundler.js");
 /* harmony import */ var _vue_compiler_dom__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! @vue/compiler-dom */ "./node_modules/@vue/compiler-dom/dist/compiler-dom.esm-bundler.js");
-/* harmony import */ var _vue_shared__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! @vue/shared */ "./node_modules/vue/node_modules/@vue/shared/dist/shared.esm-bundler.js");
+/* harmony import */ var _vue_shared__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! @vue/shared */ "./node_modules/@vue/shared/dist/shared.esm-bundler.js");
 
 
 
@@ -62100,677 +60537,6 @@ function compileToFunction(template, options) {
     return (compileCache[key] = render);
 }
 (0,_vue_runtime_dom__WEBPACK_IMPORTED_MODULE_1__.registerRuntimeCompiler)(compileToFunction);
-
-
-
-
-/***/ }),
-
-/***/ "./node_modules/vue/node_modules/@vue/shared/dist/shared.esm-bundler.js":
-/*!******************************************************************************!*\
-  !*** ./node_modules/vue/node_modules/@vue/shared/dist/shared.esm-bundler.js ***!
-  \******************************************************************************/
-/***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
-
-"use strict";
-__webpack_require__.r(__webpack_exports__);
-/* harmony export */ __webpack_require__.d(__webpack_exports__, {
-/* harmony export */   "EMPTY_ARR": () => (/* binding */ EMPTY_ARR),
-/* harmony export */   "EMPTY_OBJ": () => (/* binding */ EMPTY_OBJ),
-/* harmony export */   "NO": () => (/* binding */ NO),
-/* harmony export */   "NOOP": () => (/* binding */ NOOP),
-/* harmony export */   "PatchFlagNames": () => (/* binding */ PatchFlagNames),
-/* harmony export */   "camelize": () => (/* binding */ camelize),
-/* harmony export */   "capitalize": () => (/* binding */ capitalize),
-/* harmony export */   "def": () => (/* binding */ def),
-/* harmony export */   "escapeHtml": () => (/* binding */ escapeHtml),
-/* harmony export */   "escapeHtmlComment": () => (/* binding */ escapeHtmlComment),
-/* harmony export */   "extend": () => (/* binding */ extend),
-/* harmony export */   "genPropsAccessExp": () => (/* binding */ genPropsAccessExp),
-/* harmony export */   "generateCodeFrame": () => (/* binding */ generateCodeFrame),
-/* harmony export */   "getGlobalThis": () => (/* binding */ getGlobalThis),
-/* harmony export */   "hasChanged": () => (/* binding */ hasChanged),
-/* harmony export */   "hasOwn": () => (/* binding */ hasOwn),
-/* harmony export */   "hyphenate": () => (/* binding */ hyphenate),
-/* harmony export */   "includeBooleanAttr": () => (/* binding */ includeBooleanAttr),
-/* harmony export */   "invokeArrayFns": () => (/* binding */ invokeArrayFns),
-/* harmony export */   "isArray": () => (/* binding */ isArray),
-/* harmony export */   "isBooleanAttr": () => (/* binding */ isBooleanAttr),
-/* harmony export */   "isBuiltInDirective": () => (/* binding */ isBuiltInDirective),
-/* harmony export */   "isDate": () => (/* binding */ isDate),
-/* harmony export */   "isFunction": () => (/* binding */ isFunction),
-/* harmony export */   "isGloballyWhitelisted": () => (/* binding */ isGloballyWhitelisted),
-/* harmony export */   "isHTMLTag": () => (/* binding */ isHTMLTag),
-/* harmony export */   "isIntegerKey": () => (/* binding */ isIntegerKey),
-/* harmony export */   "isKnownHtmlAttr": () => (/* binding */ isKnownHtmlAttr),
-/* harmony export */   "isKnownSvgAttr": () => (/* binding */ isKnownSvgAttr),
-/* harmony export */   "isMap": () => (/* binding */ isMap),
-/* harmony export */   "isModelListener": () => (/* binding */ isModelListener),
-/* harmony export */   "isNoUnitNumericStyleProp": () => (/* binding */ isNoUnitNumericStyleProp),
-/* harmony export */   "isObject": () => (/* binding */ isObject),
-/* harmony export */   "isOn": () => (/* binding */ isOn),
-/* harmony export */   "isPlainObject": () => (/* binding */ isPlainObject),
-/* harmony export */   "isPromise": () => (/* binding */ isPromise),
-/* harmony export */   "isReservedProp": () => (/* binding */ isReservedProp),
-/* harmony export */   "isSSRSafeAttrName": () => (/* binding */ isSSRSafeAttrName),
-/* harmony export */   "isSVGTag": () => (/* binding */ isSVGTag),
-/* harmony export */   "isSet": () => (/* binding */ isSet),
-/* harmony export */   "isSpecialBooleanAttr": () => (/* binding */ isSpecialBooleanAttr),
-/* harmony export */   "isString": () => (/* binding */ isString),
-/* harmony export */   "isSymbol": () => (/* binding */ isSymbol),
-/* harmony export */   "isVoidTag": () => (/* binding */ isVoidTag),
-/* harmony export */   "looseEqual": () => (/* binding */ looseEqual),
-/* harmony export */   "looseIndexOf": () => (/* binding */ looseIndexOf),
-/* harmony export */   "makeMap": () => (/* binding */ makeMap),
-/* harmony export */   "normalizeClass": () => (/* binding */ normalizeClass),
-/* harmony export */   "normalizeProps": () => (/* binding */ normalizeProps),
-/* harmony export */   "normalizeStyle": () => (/* binding */ normalizeStyle),
-/* harmony export */   "objectToString": () => (/* binding */ objectToString),
-/* harmony export */   "parseStringStyle": () => (/* binding */ parseStringStyle),
-/* harmony export */   "propsToAttrMap": () => (/* binding */ propsToAttrMap),
-/* harmony export */   "remove": () => (/* binding */ remove),
-/* harmony export */   "slotFlagsText": () => (/* binding */ slotFlagsText),
-/* harmony export */   "stringifyStyle": () => (/* binding */ stringifyStyle),
-/* harmony export */   "toDisplayString": () => (/* binding */ toDisplayString),
-/* harmony export */   "toHandlerKey": () => (/* binding */ toHandlerKey),
-/* harmony export */   "toNumber": () => (/* binding */ toNumber),
-/* harmony export */   "toRawType": () => (/* binding */ toRawType),
-/* harmony export */   "toTypeString": () => (/* binding */ toTypeString)
-/* harmony export */ });
-/**
- * Make a map and return a function for checking if a key
- * is in that map.
- * IMPORTANT: all calls of this function must be prefixed with
- * \/\*#\_\_PURE\_\_\*\/
- * So that rollup can tree-shake them if necessary.
- */
-function makeMap(str, expectsLowerCase) {
-    const map = Object.create(null);
-    const list = str.split(',');
-    for (let i = 0; i < list.length; i++) {
-        map[list[i]] = true;
-    }
-    return expectsLowerCase ? val => !!map[val.toLowerCase()] : val => !!map[val];
-}
-
-/**
- * dev only flag -> name mapping
- */
-const PatchFlagNames = {
-    [1 /* PatchFlags.TEXT */]: `TEXT`,
-    [2 /* PatchFlags.CLASS */]: `CLASS`,
-    [4 /* PatchFlags.STYLE */]: `STYLE`,
-    [8 /* PatchFlags.PROPS */]: `PROPS`,
-    [16 /* PatchFlags.FULL_PROPS */]: `FULL_PROPS`,
-    [32 /* PatchFlags.HYDRATE_EVENTS */]: `HYDRATE_EVENTS`,
-    [64 /* PatchFlags.STABLE_FRAGMENT */]: `STABLE_FRAGMENT`,
-    [128 /* PatchFlags.KEYED_FRAGMENT */]: `KEYED_FRAGMENT`,
-    [256 /* PatchFlags.UNKEYED_FRAGMENT */]: `UNKEYED_FRAGMENT`,
-    [512 /* PatchFlags.NEED_PATCH */]: `NEED_PATCH`,
-    [1024 /* PatchFlags.DYNAMIC_SLOTS */]: `DYNAMIC_SLOTS`,
-    [2048 /* PatchFlags.DEV_ROOT_FRAGMENT */]: `DEV_ROOT_FRAGMENT`,
-    [-1 /* PatchFlags.HOISTED */]: `HOISTED`,
-    [-2 /* PatchFlags.BAIL */]: `BAIL`
-};
-
-/**
- * Dev only
- */
-const slotFlagsText = {
-    [1 /* SlotFlags.STABLE */]: 'STABLE',
-    [2 /* SlotFlags.DYNAMIC */]: 'DYNAMIC',
-    [3 /* SlotFlags.FORWARDED */]: 'FORWARDED'
-};
-
-const GLOBALS_WHITE_LISTED = 'Infinity,undefined,NaN,isFinite,isNaN,parseFloat,parseInt,decodeURI,' +
-    'decodeURIComponent,encodeURI,encodeURIComponent,Math,Number,Date,Array,' +
-    'Object,Boolean,String,RegExp,Map,Set,JSON,Intl,BigInt';
-const isGloballyWhitelisted = /*#__PURE__*/ makeMap(GLOBALS_WHITE_LISTED);
-
-const range = 2;
-function generateCodeFrame(source, start = 0, end = source.length) {
-    // Split the content into individual lines but capture the newline sequence
-    // that separated each line. This is important because the actual sequence is
-    // needed to properly take into account the full line length for offset
-    // comparison
-    let lines = source.split(/(\r?\n)/);
-    // Separate the lines and newline sequences into separate arrays for easier referencing
-    const newlineSequences = lines.filter((_, idx) => idx % 2 === 1);
-    lines = lines.filter((_, idx) => idx % 2 === 0);
-    let count = 0;
-    const res = [];
-    for (let i = 0; i < lines.length; i++) {
-        count +=
-            lines[i].length +
-                ((newlineSequences[i] && newlineSequences[i].length) || 0);
-        if (count >= start) {
-            for (let j = i - range; j <= i + range || end > count; j++) {
-                if (j < 0 || j >= lines.length)
-                    continue;
-                const line = j + 1;
-                res.push(`${line}${' '.repeat(Math.max(3 - String(line).length, 0))}|  ${lines[j]}`);
-                const lineLength = lines[j].length;
-                const newLineSeqLength = (newlineSequences[j] && newlineSequences[j].length) || 0;
-                if (j === i) {
-                    // push underline
-                    const pad = start - (count - (lineLength + newLineSeqLength));
-                    const length = Math.max(1, end > count ? lineLength - pad : end - start);
-                    res.push(`   |  ` + ' '.repeat(pad) + '^'.repeat(length));
-                }
-                else if (j > i) {
-                    if (end > count) {
-                        const length = Math.max(Math.min(end - count, lineLength), 1);
-                        res.push(`   |  ` + '^'.repeat(length));
-                    }
-                    count += lineLength + newLineSeqLength;
-                }
-            }
-            break;
-        }
-    }
-    return res.join('\n');
-}
-
-/**
- * On the client we only need to offer special cases for boolean attributes that
- * have different names from their corresponding dom properties:
- * - itemscope -> N/A
- * - allowfullscreen -> allowFullscreen
- * - formnovalidate -> formNoValidate
- * - ismap -> isMap
- * - nomodule -> noModule
- * - novalidate -> noValidate
- * - readonly -> readOnly
- */
-const specialBooleanAttrs = `itemscope,allowfullscreen,formnovalidate,ismap,nomodule,novalidate,readonly`;
-const isSpecialBooleanAttr = /*#__PURE__*/ makeMap(specialBooleanAttrs);
-/**
- * The full list is needed during SSR to produce the correct initial markup.
- */
-const isBooleanAttr = /*#__PURE__*/ makeMap(specialBooleanAttrs +
-    `,async,autofocus,autoplay,controls,default,defer,disabled,hidden,` +
-    `loop,open,required,reversed,scoped,seamless,` +
-    `checked,muted,multiple,selected`);
-/**
- * Boolean attributes should be included if the value is truthy or ''.
- * e.g. `<select multiple>` compiles to `{ multiple: '' }`
- */
-function includeBooleanAttr(value) {
-    return !!value || value === '';
-}
-const unsafeAttrCharRE = /[>/="'\u0009\u000a\u000c\u0020]/;
-const attrValidationCache = {};
-function isSSRSafeAttrName(name) {
-    if (attrValidationCache.hasOwnProperty(name)) {
-        return attrValidationCache[name];
-    }
-    const isUnsafe = unsafeAttrCharRE.test(name);
-    if (isUnsafe) {
-        console.error(`unsafe attribute name: ${name}`);
-    }
-    return (attrValidationCache[name] = !isUnsafe);
-}
-const propsToAttrMap = {
-    acceptCharset: 'accept-charset',
-    className: 'class',
-    htmlFor: 'for',
-    httpEquiv: 'http-equiv'
-};
-/**
- * CSS properties that accept plain numbers
- */
-const isNoUnitNumericStyleProp = /*#__PURE__*/ makeMap(`animation-iteration-count,border-image-outset,border-image-slice,` +
-    `border-image-width,box-flex,box-flex-group,box-ordinal-group,column-count,` +
-    `columns,flex,flex-grow,flex-positive,flex-shrink,flex-negative,flex-order,` +
-    `grid-row,grid-row-end,grid-row-span,grid-row-start,grid-column,` +
-    `grid-column-end,grid-column-span,grid-column-start,font-weight,line-clamp,` +
-    `line-height,opacity,order,orphans,tab-size,widows,z-index,zoom,` +
-    // SVG
-    `fill-opacity,flood-opacity,stop-opacity,stroke-dasharray,stroke-dashoffset,` +
-    `stroke-miterlimit,stroke-opacity,stroke-width`);
-/**
- * Known attributes, this is used for stringification of runtime static nodes
- * so that we don't stringify bindings that cannot be set from HTML.
- * Don't also forget to allow `data-*` and `aria-*`!
- * Generated from https://developer.mozilla.org/en-US/docs/Web/HTML/Attributes
- */
-const isKnownHtmlAttr = /*#__PURE__*/ makeMap(`accept,accept-charset,accesskey,action,align,allow,alt,async,` +
-    `autocapitalize,autocomplete,autofocus,autoplay,background,bgcolor,` +
-    `border,buffered,capture,challenge,charset,checked,cite,class,code,` +
-    `codebase,color,cols,colspan,content,contenteditable,contextmenu,controls,` +
-    `coords,crossorigin,csp,data,datetime,decoding,default,defer,dir,dirname,` +
-    `disabled,download,draggable,dropzone,enctype,enterkeyhint,for,form,` +
-    `formaction,formenctype,formmethod,formnovalidate,formtarget,headers,` +
-    `height,hidden,high,href,hreflang,http-equiv,icon,id,importance,integrity,` +
-    `ismap,itemprop,keytype,kind,label,lang,language,loading,list,loop,low,` +
-    `manifest,max,maxlength,minlength,media,min,multiple,muted,name,novalidate,` +
-    `open,optimum,pattern,ping,placeholder,poster,preload,radiogroup,readonly,` +
-    `referrerpolicy,rel,required,reversed,rows,rowspan,sandbox,scope,scoped,` +
-    `selected,shape,size,sizes,slot,span,spellcheck,src,srcdoc,srclang,srcset,` +
-    `start,step,style,summary,tabindex,target,title,translate,type,usemap,` +
-    `value,width,wrap`);
-/**
- * Generated from https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute
- */
-const isKnownSvgAttr = /*#__PURE__*/ makeMap(`xmlns,accent-height,accumulate,additive,alignment-baseline,alphabetic,amplitude,` +
-    `arabic-form,ascent,attributeName,attributeType,azimuth,baseFrequency,` +
-    `baseline-shift,baseProfile,bbox,begin,bias,by,calcMode,cap-height,class,` +
-    `clip,clipPathUnits,clip-path,clip-rule,color,color-interpolation,` +
-    `color-interpolation-filters,color-profile,color-rendering,` +
-    `contentScriptType,contentStyleType,crossorigin,cursor,cx,cy,d,decelerate,` +
-    `descent,diffuseConstant,direction,display,divisor,dominant-baseline,dur,dx,` +
-    `dy,edgeMode,elevation,enable-background,end,exponent,fill,fill-opacity,` +
-    `fill-rule,filter,filterRes,filterUnits,flood-color,flood-opacity,` +
-    `font-family,font-size,font-size-adjust,font-stretch,font-style,` +
-    `font-variant,font-weight,format,from,fr,fx,fy,g1,g2,glyph-name,` +
-    `glyph-orientation-horizontal,glyph-orientation-vertical,glyphRef,` +
-    `gradientTransform,gradientUnits,hanging,height,href,hreflang,horiz-adv-x,` +
-    `horiz-origin-x,id,ideographic,image-rendering,in,in2,intercept,k,k1,k2,k3,` +
-    `k4,kernelMatrix,kernelUnitLength,kerning,keyPoints,keySplines,keyTimes,` +
-    `lang,lengthAdjust,letter-spacing,lighting-color,limitingConeAngle,local,` +
-    `marker-end,marker-mid,marker-start,markerHeight,markerUnits,markerWidth,` +
-    `mask,maskContentUnits,maskUnits,mathematical,max,media,method,min,mode,` +
-    `name,numOctaves,offset,opacity,operator,order,orient,orientation,origin,` +
-    `overflow,overline-position,overline-thickness,panose-1,paint-order,path,` +
-    `pathLength,patternContentUnits,patternTransform,patternUnits,ping,` +
-    `pointer-events,points,pointsAtX,pointsAtY,pointsAtZ,preserveAlpha,` +
-    `preserveAspectRatio,primitiveUnits,r,radius,referrerPolicy,refX,refY,rel,` +
-    `rendering-intent,repeatCount,repeatDur,requiredExtensions,requiredFeatures,` +
-    `restart,result,rotate,rx,ry,scale,seed,shape-rendering,slope,spacing,` +
-    `specularConstant,specularExponent,speed,spreadMethod,startOffset,` +
-    `stdDeviation,stemh,stemv,stitchTiles,stop-color,stop-opacity,` +
-    `strikethrough-position,strikethrough-thickness,string,stroke,` +
-    `stroke-dasharray,stroke-dashoffset,stroke-linecap,stroke-linejoin,` +
-    `stroke-miterlimit,stroke-opacity,stroke-width,style,surfaceScale,` +
-    `systemLanguage,tabindex,tableValues,target,targetX,targetY,text-anchor,` +
-    `text-decoration,text-rendering,textLength,to,transform,transform-origin,` +
-    `type,u1,u2,underline-position,underline-thickness,unicode,unicode-bidi,` +
-    `unicode-range,units-per-em,v-alphabetic,v-hanging,v-ideographic,` +
-    `v-mathematical,values,vector-effect,version,vert-adv-y,vert-origin-x,` +
-    `vert-origin-y,viewBox,viewTarget,visibility,width,widths,word-spacing,` +
-    `writing-mode,x,x-height,x1,x2,xChannelSelector,xlink:actuate,xlink:arcrole,` +
-    `xlink:href,xlink:role,xlink:show,xlink:title,xlink:type,xml:base,xml:lang,` +
-    `xml:space,y,y1,y2,yChannelSelector,z,zoomAndPan`);
-
-function normalizeStyle(value) {
-    if (isArray(value)) {
-        const res = {};
-        for (let i = 0; i < value.length; i++) {
-            const item = value[i];
-            const normalized = isString(item)
-                ? parseStringStyle(item)
-                : normalizeStyle(item);
-            if (normalized) {
-                for (const key in normalized) {
-                    res[key] = normalized[key];
-                }
-            }
-        }
-        return res;
-    }
-    else if (isString(value)) {
-        return value;
-    }
-    else if (isObject(value)) {
-        return value;
-    }
-}
-const listDelimiterRE = /;(?![^(]*\))/g;
-const propertyDelimiterRE = /:(.+)/;
-function parseStringStyle(cssText) {
-    const ret = {};
-    cssText.split(listDelimiterRE).forEach(item => {
-        if (item) {
-            const tmp = item.split(propertyDelimiterRE);
-            tmp.length > 1 && (ret[tmp[0].trim()] = tmp[1].trim());
-        }
-    });
-    return ret;
-}
-function stringifyStyle(styles) {
-    let ret = '';
-    if (!styles || isString(styles)) {
-        return ret;
-    }
-    for (const key in styles) {
-        const value = styles[key];
-        const normalizedKey = key.startsWith(`--`) ? key : hyphenate(key);
-        if (isString(value) ||
-            (typeof value === 'number' && isNoUnitNumericStyleProp(normalizedKey))) {
-            // only render valid values
-            ret += `${normalizedKey}:${value};`;
-        }
-    }
-    return ret;
-}
-function normalizeClass(value) {
-    let res = '';
-    if (isString(value)) {
-        res = value;
-    }
-    else if (isArray(value)) {
-        for (let i = 0; i < value.length; i++) {
-            const normalized = normalizeClass(value[i]);
-            if (normalized) {
-                res += normalized + ' ';
-            }
-        }
-    }
-    else if (isObject(value)) {
-        for (const name in value) {
-            if (value[name]) {
-                res += name + ' ';
-            }
-        }
-    }
-    return res.trim();
-}
-function normalizeProps(props) {
-    if (!props)
-        return null;
-    let { class: klass, style } = props;
-    if (klass && !isString(klass)) {
-        props.class = normalizeClass(klass);
-    }
-    if (style) {
-        props.style = normalizeStyle(style);
-    }
-    return props;
-}
-
-// These tag configs are shared between compiler-dom and runtime-dom, so they
-// https://developer.mozilla.org/en-US/docs/Web/HTML/Element
-const HTML_TAGS = 'html,body,base,head,link,meta,style,title,address,article,aside,footer,' +
-    'header,h1,h2,h3,h4,h5,h6,nav,section,div,dd,dl,dt,figcaption,' +
-    'figure,picture,hr,img,li,main,ol,p,pre,ul,a,b,abbr,bdi,bdo,br,cite,code,' +
-    'data,dfn,em,i,kbd,mark,q,rp,rt,ruby,s,samp,small,span,strong,sub,sup,' +
-    'time,u,var,wbr,area,audio,map,track,video,embed,object,param,source,' +
-    'canvas,script,noscript,del,ins,caption,col,colgroup,table,thead,tbody,td,' +
-    'th,tr,button,datalist,fieldset,form,input,label,legend,meter,optgroup,' +
-    'option,output,progress,select,textarea,details,dialog,menu,' +
-    'summary,template,blockquote,iframe,tfoot';
-// https://developer.mozilla.org/en-US/docs/Web/SVG/Element
-const SVG_TAGS = 'svg,animate,animateMotion,animateTransform,circle,clipPath,color-profile,' +
-    'defs,desc,discard,ellipse,feBlend,feColorMatrix,feComponentTransfer,' +
-    'feComposite,feConvolveMatrix,feDiffuseLighting,feDisplacementMap,' +
-    'feDistanceLight,feDropShadow,feFlood,feFuncA,feFuncB,feFuncG,feFuncR,' +
-    'feGaussianBlur,feImage,feMerge,feMergeNode,feMorphology,feOffset,' +
-    'fePointLight,feSpecularLighting,feSpotLight,feTile,feTurbulence,filter,' +
-    'foreignObject,g,hatch,hatchpath,image,line,linearGradient,marker,mask,' +
-    'mesh,meshgradient,meshpatch,meshrow,metadata,mpath,path,pattern,' +
-    'polygon,polyline,radialGradient,rect,set,solidcolor,stop,switch,symbol,' +
-    'text,textPath,title,tspan,unknown,use,view';
-const VOID_TAGS = 'area,base,br,col,embed,hr,img,input,link,meta,param,source,track,wbr';
-/**
- * Compiler only.
- * Do NOT use in runtime code paths unless behind `(process.env.NODE_ENV !== 'production')` flag.
- */
-const isHTMLTag = /*#__PURE__*/ makeMap(HTML_TAGS);
-/**
- * Compiler only.
- * Do NOT use in runtime code paths unless behind `(process.env.NODE_ENV !== 'production')` flag.
- */
-const isSVGTag = /*#__PURE__*/ makeMap(SVG_TAGS);
-/**
- * Compiler only.
- * Do NOT use in runtime code paths unless behind `(process.env.NODE_ENV !== 'production')` flag.
- */
-const isVoidTag = /*#__PURE__*/ makeMap(VOID_TAGS);
-
-const escapeRE = /["'&<>]/;
-function escapeHtml(string) {
-    const str = '' + string;
-    const match = escapeRE.exec(str);
-    if (!match) {
-        return str;
-    }
-    let html = '';
-    let escaped;
-    let index;
-    let lastIndex = 0;
-    for (index = match.index; index < str.length; index++) {
-        switch (str.charCodeAt(index)) {
-            case 34: // "
-                escaped = '&quot;';
-                break;
-            case 38: // &
-                escaped = '&amp;';
-                break;
-            case 39: // '
-                escaped = '&#39;';
-                break;
-            case 60: // <
-                escaped = '&lt;';
-                break;
-            case 62: // >
-                escaped = '&gt;';
-                break;
-            default:
-                continue;
-        }
-        if (lastIndex !== index) {
-            html += str.slice(lastIndex, index);
-        }
-        lastIndex = index + 1;
-        html += escaped;
-    }
-    return lastIndex !== index ? html + str.slice(lastIndex, index) : html;
-}
-// https://www.w3.org/TR/html52/syntax.html#comments
-const commentStripRE = /^-?>|<!--|-->|--!>|<!-$/g;
-function escapeHtmlComment(src) {
-    return src.replace(commentStripRE, '');
-}
-
-function looseCompareArrays(a, b) {
-    if (a.length !== b.length)
-        return false;
-    let equal = true;
-    for (let i = 0; equal && i < a.length; i++) {
-        equal = looseEqual(a[i], b[i]);
-    }
-    return equal;
-}
-function looseEqual(a, b) {
-    if (a === b)
-        return true;
-    let aValidType = isDate(a);
-    let bValidType = isDate(b);
-    if (aValidType || bValidType) {
-        return aValidType && bValidType ? a.getTime() === b.getTime() : false;
-    }
-    aValidType = isSymbol(a);
-    bValidType = isSymbol(b);
-    if (aValidType || bValidType) {
-        return a === b;
-    }
-    aValidType = isArray(a);
-    bValidType = isArray(b);
-    if (aValidType || bValidType) {
-        return aValidType && bValidType ? looseCompareArrays(a, b) : false;
-    }
-    aValidType = isObject(a);
-    bValidType = isObject(b);
-    if (aValidType || bValidType) {
-        /* istanbul ignore if: this if will probably never be called */
-        if (!aValidType || !bValidType) {
-            return false;
-        }
-        const aKeysCount = Object.keys(a).length;
-        const bKeysCount = Object.keys(b).length;
-        if (aKeysCount !== bKeysCount) {
-            return false;
-        }
-        for (const key in a) {
-            const aHasKey = a.hasOwnProperty(key);
-            const bHasKey = b.hasOwnProperty(key);
-            if ((aHasKey && !bHasKey) ||
-                (!aHasKey && bHasKey) ||
-                !looseEqual(a[key], b[key])) {
-                return false;
-            }
-        }
-    }
-    return String(a) === String(b);
-}
-function looseIndexOf(arr, val) {
-    return arr.findIndex(item => looseEqual(item, val));
-}
-
-/**
- * For converting {{ interpolation }} values to displayed strings.
- * @private
- */
-const toDisplayString = (val) => {
-    return isString(val)
-        ? val
-        : val == null
-            ? ''
-            : isArray(val) ||
-                (isObject(val) &&
-                    (val.toString === objectToString || !isFunction(val.toString)))
-                ? JSON.stringify(val, replacer, 2)
-                : String(val);
-};
-const replacer = (_key, val) => {
-    // can't use isRef here since @vue/shared has no deps
-    if (val && val.__v_isRef) {
-        return replacer(_key, val.value);
-    }
-    else if (isMap(val)) {
-        return {
-            [`Map(${val.size})`]: [...val.entries()].reduce((entries, [key, val]) => {
-                entries[`${key} =>`] = val;
-                return entries;
-            }, {})
-        };
-    }
-    else if (isSet(val)) {
-        return {
-            [`Set(${val.size})`]: [...val.values()]
-        };
-    }
-    else if (isObject(val) && !isArray(val) && !isPlainObject(val)) {
-        return String(val);
-    }
-    return val;
-};
-
-const EMPTY_OBJ = ( true)
-    ? Object.freeze({})
-    : 0;
-const EMPTY_ARR = ( true) ? Object.freeze([]) : 0;
-const NOOP = () => { };
-/**
- * Always return false.
- */
-const NO = () => false;
-const onRE = /^on[^a-z]/;
-const isOn = (key) => onRE.test(key);
-const isModelListener = (key) => key.startsWith('onUpdate:');
-const extend = Object.assign;
-const remove = (arr, el) => {
-    const i = arr.indexOf(el);
-    if (i > -1) {
-        arr.splice(i, 1);
-    }
-};
-const hasOwnProperty = Object.prototype.hasOwnProperty;
-const hasOwn = (val, key) => hasOwnProperty.call(val, key);
-const isArray = Array.isArray;
-const isMap = (val) => toTypeString(val) === '[object Map]';
-const isSet = (val) => toTypeString(val) === '[object Set]';
-const isDate = (val) => toTypeString(val) === '[object Date]';
-const isFunction = (val) => typeof val === 'function';
-const isString = (val) => typeof val === 'string';
-const isSymbol = (val) => typeof val === 'symbol';
-const isObject = (val) => val !== null && typeof val === 'object';
-const isPromise = (val) => {
-    return isObject(val) && isFunction(val.then) && isFunction(val.catch);
-};
-const objectToString = Object.prototype.toString;
-const toTypeString = (value) => objectToString.call(value);
-const toRawType = (value) => {
-    // extract "RawType" from strings like "[object RawType]"
-    return toTypeString(value).slice(8, -1);
-};
-const isPlainObject = (val) => toTypeString(val) === '[object Object]';
-const isIntegerKey = (key) => isString(key) &&
-    key !== 'NaN' &&
-    key[0] !== '-' &&
-    '' + parseInt(key, 10) === key;
-const isReservedProp = /*#__PURE__*/ makeMap(
-// the leading comma is intentional so empty string "" is also included
-',key,ref,ref_for,ref_key,' +
-    'onVnodeBeforeMount,onVnodeMounted,' +
-    'onVnodeBeforeUpdate,onVnodeUpdated,' +
-    'onVnodeBeforeUnmount,onVnodeUnmounted');
-const isBuiltInDirective = /*#__PURE__*/ makeMap('bind,cloak,else-if,else,for,html,if,model,on,once,pre,show,slot,text,memo');
-const cacheStringFunction = (fn) => {
-    const cache = Object.create(null);
-    return ((str) => {
-        const hit = cache[str];
-        return hit || (cache[str] = fn(str));
-    });
-};
-const camelizeRE = /-(\w)/g;
-/**
- * @private
- */
-const camelize = cacheStringFunction((str) => {
-    return str.replace(camelizeRE, (_, c) => (c ? c.toUpperCase() : ''));
-});
-const hyphenateRE = /\B([A-Z])/g;
-/**
- * @private
- */
-const hyphenate = cacheStringFunction((str) => str.replace(hyphenateRE, '-$1').toLowerCase());
-/**
- * @private
- */
-const capitalize = cacheStringFunction((str) => str.charAt(0).toUpperCase() + str.slice(1));
-/**
- * @private
- */
-const toHandlerKey = cacheStringFunction((str) => str ? `on${capitalize(str)}` : ``);
-// compare whether a value has changed, accounting for NaN.
-const hasChanged = (value, oldValue) => !Object.is(value, oldValue);
-const invokeArrayFns = (fns, arg) => {
-    for (let i = 0; i < fns.length; i++) {
-        fns[i](arg);
-    }
-};
-const def = (obj, key, value) => {
-    Object.defineProperty(obj, key, {
-        configurable: true,
-        enumerable: false,
-        value
-    });
-};
-const toNumber = (val) => {
-    const n = parseFloat(val);
-    return isNaN(n) ? val : n;
-};
-let _globalThis;
-const getGlobalThis = () => {
-    return (_globalThis ||
-        (_globalThis =
-            typeof globalThis !== 'undefined'
-                ? globalThis
-                : typeof self !== 'undefined'
-                    ? self
-                    : typeof window !== 'undefined'
-                        ? window
-                        : typeof __webpack_require__.g !== 'undefined'
-                            ? __webpack_require__.g
-                            : {}));
-};
-const identRE = /^[_$a-zA-Z\xA0-\uFFFF][_$a-zA-Z0-9\xA0-\uFFFF]*$/;
-function genPropsAccessExp(name) {
-    return identRE.test(name)
-        ? `__props.${name}`
-        : `__props[${JSON.stringify(name)}]`;
-}
 
 
 

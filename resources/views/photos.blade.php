@@ -8,6 +8,8 @@
 
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
     <link rel="stylesheet" href="{{asset('frontend/css/app.css')}}">
+    <link rel="stylesheet" href="{{asset('venobox/venobox.min.css')}}" type="text/css" media="screen" />
+
     <script type='text/javascript'
             src='https://platform-api.sharethis.com/js/sharethis.js#property=630f5ce90b5e930012a9c3c7&product=sop'
             async='async'></script>
@@ -19,9 +21,13 @@
 {{--Main--}}
 <div class="main">
 
-    <div class="container m-4">
+    <div class="container my-4">
         <div class="row">
-Yükleniyor
+                <div class="col-lg-3 col-sm-4 col-6 pb-4">
+                    <a class="venobox" href="/uploads/images/1674131974201-uniter.jpg" data-gall="myGallery"><img src="/uploads/images/1674131974201-uniter.jpg" alt="image alt"/></a>
+                </div>
+            </div>
+
 {{--                @foreach($videos as $video)--}}
 {{--                    <div class="col-sm-12 col-md-6 col-lg-4 d-flex align-self-stretch my-3">--}}
 {{--                        <div class="card shadow-sm">--}}
@@ -66,8 +72,12 @@ Yükleniyor
         </div>
     </div>
 </footer>
-
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/2.1.3/jquery.min.js"></script>
+<script type="text/javascript" src="{{asset('venobox/venobox.min.js')}}"></script>
+
 <script src="{{asset('frontend/js/app.js')}}"></script>
+<script>
+    $('.venobox').venobox();
+</script>
 </body>
 </html>

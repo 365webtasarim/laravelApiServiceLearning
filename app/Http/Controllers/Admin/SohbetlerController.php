@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\CategoriesPost;
 use App\Models\Category;
 use App\Models\Post;
 use App\Models\Tag;
@@ -13,7 +14,9 @@ class SohbetlerController extends Controller
 {
     public function index()
     {
+
         $makaleler = Post::where('type','post')->get();
+
         return view('admin.makaleler.index', compact('makaleler'));
     }
 
@@ -70,7 +73,9 @@ class SohbetlerController extends Controller
     {
 
         $cat = Category::where('deps_id',1)->get();
-        $makale = Post::where('type','post')->findOrFail($id);
+
+        $makale = Post::with('catagory')->where('type','post')->findOrFail($id);
+
         $tags = Taglar::with('tag')->where('post_id', $id)->get()->pluck('tag.tags')->toArray();
         $tags=implode(',',$tags);
         return view('admin.makaleler.edit', compact('makale', 'cat','tags'));
@@ -83,7 +88,7 @@ class SohbetlerController extends Controller
             $makale->cover = $request->media;
         }
         $makale->title = $request->title;
-        $makale->c_id = $request->cat;
+        $makale->catagory()->attach($request->cat);
         $makale->slug = $request->slug;
         $makale->embed = $request->embed;
         $makale->description = $request->editor;

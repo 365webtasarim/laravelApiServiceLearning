@@ -12,6 +12,27 @@
         </span>
     </div>
 </nav>
+
+<section id="search-blog" style="">
+    <div class="container">
+        <div class="form-group">
+            <div id="search_form">
+                <div class="input-group">
+                    <span class="input-group-addon"><i class="fa fa-search"></i></span>
+                    <input id="typeahead" type="text" name="query" class="form-control" onkeydown="searchs()" placeholder="Aranacak Kelimeyi Giriniz">
+
+
+                    <a href="#" class="btn btn-primary search-button close-search">
+
+
+                        <i class="fas fa-times"></i></a>
+                </div>
+
+            </div>
+        </div>
+    </div>
+</section>
+
 <nav class="navbar navbar-expand-lg navbar-light bg-top-2">
     <div class="container">
         <a class="navbar-brand" href="/#"><img src="{{asset('image/logo.png')}}" class="img-fluid" alt=""></a>
@@ -26,7 +47,7 @@
                         <li><a class="dropdown-item" href="/">TÜZÜK</a></li>
 
                     </ul>
-                </li> ---!>
+                </li> --->
                 <li class="nav-item dropdown">
                     <a class="nav-link dropdown-toggle" aria-current="page" href="/#" role="button"
                        data-bs-toggle="dropdown" aria-expanded="false">PROF. DR. HAYDAR BAŞ</a>
@@ -55,7 +76,7 @@
                 <li class="nav-item">
                     <a class="nav-link" aria-current="page" href="/iletisim">İLETİŞİM</a>
                 </li>
-                <li class="nav-item">
+                <li id="mobile_search_menu" class="search-button search-bg" >
                     <a class="nav-link" aria-current="page" href="/#"><i class="fas fa-search"></i></a>
                 </li>
             </ul>
