@@ -18,7 +18,6 @@ class Post extends Model
         'description',
         'slug',
         'cover',
-        'c_id',
         'hit',
         'embed',
         'status',
@@ -27,12 +26,12 @@ class Post extends Model
     ];
     public function catagory()
     {
-        return $this->belongsToMany('App\Models\CategoriesPost','categories_posts','post_id');
+        return $this->belongsToMany(Category::class,'categories_posts','post_id','category_id');
     }
 
-    public function taglari()
+    public function tags()
     {
-        return $this->belongsToMany(Tag::class,'taglars','post_id');
+        return $this->belongsToMany(Tag::class,'taglars','post_id','tag_id');
     }
 
     public function scopeActive($query)

@@ -10,13 +10,30 @@
         <!-- Fonts -->
         <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700&display=swap">
         <link rel="stylesheet" href="https://cdn.datatables.net/1.12.1/css/jquery.dataTables.min.css">
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/tw-elements/dist/css/index.min.css" />
         <script src="https://code.jquery.com/jquery-3.5.1.js"></script>
         <script src="//ajax.googleapis.com/ajax/libs/jquery/1.7.2/jquery.min.js"></script>
         <script src="//cdnjs.cloudflare.com/ajax/libs/nestable2/1.5.0/jquery.nestable.min.js"></script>
         <script src="https://cdn.datatables.net/1.12.1/js/jquery.dataTables.min.js"></script>
+        <script src="https://cdn.tailwindcss.com/3.2.4"></script>
         <link rel="stylesheet" href="{{ mix('/css/app.css') }}">
         <!-- Scripts -->
         <script src="/plugins/ckeditor/ckeditor.js"></script>
+        <script>
+            tailwind.config = {
+                darkMode: "class",
+                theme: {
+                    fontFamily: {
+                        sans: ["Roboto", "sans-serif"],
+                        body: ["Roboto", "sans-serif"],
+                        mono: ["ui-monospace", "monospace"],
+                    },
+                },
+                corePlugins: {
+                    preflight: false,
+                },
+            };
+        </script>
     </head>
     <body class="font-sans antialiased">
         <div class="min-h-screen bg-gray-100">
@@ -35,5 +52,6 @@
             </main>
         </div>
         <script src="{{ mix('/js/app.js') }}"></script>
+        <script src="https://cdn.jsdelivr.net/npm/tw-elements/dist/js/index.min.js"></script>
     </body>
 </html>
