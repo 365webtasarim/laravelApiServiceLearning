@@ -3,7 +3,6 @@
 namespace App\Services;
 
 use App\Http\Requests\PostRequest;
-use App\Models\Category;
 use App\Models\Post;
 use App\Models\Tag;
 
@@ -33,7 +32,8 @@ class PostCreator
      * @param $data array: request data
      * @return array
      */
-    protected function createData($data){
+    protected function createData($data): array
+    {
         return [
             'title'         => $data['title'],
             'slug'          => $data['slug'],
@@ -60,6 +60,7 @@ class PostCreator
     /**
      * Class oluşturulurken id değeri varsa update işlemi yapar.
      * @return Post
+     * PostCreator::create();
      */
     public function update(): Post
     {
@@ -71,7 +72,7 @@ class PostCreator
         return $post->fresh();
     }
 
-    protected function createTags($tags)
+    protected function createTags($tags): array
     {
         $tags = explode(',', $tags);
         $tags = array_map('trim', $tags);
