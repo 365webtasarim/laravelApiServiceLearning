@@ -8,10 +8,13 @@ use Illuminate\Database\Eloquent\Model;
 class Taglar extends Model
 {
     use HasFactory;
+
+    protected $table = 'tags';
+
     public $timestamps = false;
 
     public function tag()
     {
-        return $this->belongsTo(Tag::class,'tag_id','id');
+        return $this->belongsToMany(Tag::class,'tag_id','id');
     }
 }

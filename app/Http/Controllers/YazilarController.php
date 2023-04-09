@@ -12,7 +12,7 @@ class YazilarController extends Controller
 {
 
     public function index(){
-        $makale=Post::where('status',1)->where('c_id','2')->orderBy('id','desc')->get();
+        $makale=Post::where('status',1)->where('c_id','2')->orderBy('id','desc')->paginate(12);
         return view('koseyazilari',compact('makale'));
     }
     public function yazi($slug){

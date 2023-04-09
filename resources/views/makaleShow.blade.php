@@ -39,9 +39,9 @@
                             href="/kategori/{{$makale->catagory->slug}}"> {{$makale->catagory->title}}</a></span>
                     <span class="me-4"><i class="fas fa-eye"></i> {{$makale->hit}}</span>
                 </div>
-                <div id="toc" class="border my-2 p-3">
+                <ul id="toc" class="border my-2 p-3">
                     <p class="h1"><img src="{{asset('image/icindekiler-icon.png')}}" alt="">Neler Okuyacaksınız</p>
-                </div>
+                </ul>
                 <div class="content my-3">
                     {!! $makale->description !!}
                     <div class="share">
@@ -122,7 +122,7 @@
                     </ol>
                     <div id="respond" class="comment-respond">
                         <div id="reply-title" class="comment-reply-title">Bir cevap yazın</div>
-                        <form action="{{route('postcomment')}}" method="post" id="commentform" class="comment-form" novalidate>
+                        <form action="{{route('postcomment',$makale->id)}}" method="post" id="commentform" class="comment-form" novalidate>
                             <p class="comment-notes"><span id="email-notes">E-posta hesabınız yayımlanmayacak.</span>
                                 <span class="required-field-message">Gerekli alanlar <span class="required">*</span> ile işaretlenmişlerdir</span>
                             </p>
@@ -131,26 +131,29 @@
                                                                                     cols="45" rows="8" maxlength="65525"
                                                                                     required></textarea></p>
                             <p class="comment-form-author"><label for="author">İsim <span
-                                        class="required">*</span></label> <input id="author" name="author" type="text"
+                                        class="required">*</span></label> <input id="author" name="name" type="text"
                                                                                  value="" size="30" maxlength="245"
                                                                                  autocomplete="name" required/></p>
                             <p class="comment-form-email"><label for="email">E-posta <span
-                                        class="required">*</span></label> <input id="email" name="email" type="email"
+                                        class="required">*</span></label> <input id="email" name="mail" type="email"
                                                                                  value="" size="30" maxlength="100"
                                                                                  aria-describedby="email-notes"
                                                                                  autocomplete="email" required/></p>
                             <p class="form-submit"><input name="submit" type="submit" id="submit" class="submit"
-                                                          value="Yorum gönder"/> <input type='hidden'
-                                                                                        name='comment_post_ID'
-                                                                                        value='{{$makale->id}}'
-                                                                                        id='comment_post_ID'/>
+                                                          value="Yorum gönder"/>
                             </p>
 
                         </form>
                     </div><!-- #respond -->
 
                 </div><!-- #comments -->
+                @if(count($errors) > 0)
+                    @foreach ($errors->all() as $error)
+                        <p>{{ $error }}</p>
+                    @endforeach
+                @endif
             </div>
+
             <div class="col-lg-4">
                 <div class="title-box d-flex bg-top-2 justify-content-center align-items-center p-2 fw-bold">
                     Benzer Sohbetler

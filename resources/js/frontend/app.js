@@ -1,7 +1,5 @@
 import 'bootstrap'
 import 'owl.carousel'
-var htmlTableOfContents = require('html-table-of-contents');
-
 
 
 $(document).ready(function(){
@@ -32,7 +30,60 @@ $(document).ready(function(){
     });
 });
 
+
+
+$("#search-blog").hide();
+
+$(".search-button").click(function() {
+
+    $("#search-blog").slideToggle("normal");
+    return false;
+});
+
+$(document).ready(function(){
+    $(".search-button-result").click(function() {
+
+        var lang 	= wiy_page_data["Dil"];
+        var tbl 	= wiy_page_data["DilAnah"];
+        var query = $("#typeahead").val();
+
+        window.location.href  = "/arama-sonuclari/"+query;
+
+    });
+});
+
+$(document).ready(function(){
+    $('#search_form').keypress(function (e) {
+        if (e.which == 13) {
+            e.preventDefault();
+            var query = $("#typeahead").val();
+            location.href  = "/arama-sonuclari/"+query;
+            return false;
+
+        }
+    });
+});
+
+function htmlTableOfContents (documentRef) {
+    var documentRef = documentRef || document;
+    var toc = documentRef.getElementById('toc');
+    var headings = [].slice.call(documentRef.body.querySelectorAll('.content > h1, .content > h2, .content > h3, .content > h4, .content > h5, .content > h6'));
+    headings.forEach(function (heading, index) {
+        var anchor = documentRef.createElement('a');
+        anchor.setAttribute('name', 'toc' + index);
+        anchor.setAttribute('id', 'toc' + index);
+
+        var link = documentRef.createElement('a');
+        link.setAttribute('href', '#toc' + index);
+        link.textContent = heading.textContent;
+
+        var div = documentRef.createElement('li');
+        div.setAttribute('class', heading.tagName.toLowerCase());
+
+        div.appendChild(link);
+        toc.appendChild(div);
+        heading.parentNode.insertBefore(anchor, heading);
+    });
+}
 htmlTableOfContents();
-
-
 

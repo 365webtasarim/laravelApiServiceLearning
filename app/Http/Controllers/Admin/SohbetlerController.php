@@ -2,18 +2,23 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Enums\CategoryEnum;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\PostRequest;
 use App\Models\Category;
 use App\Models\Post;
 use App\Models\Tag;
 use App\Models\Taglar;
 use Illuminate\Http\Request;
+use Illuminate\View\View;
 
 class SohbetlerController extends Controller
 {
     public function index()
     {
+
         $makaleler = Post::where('type','post')->get();
+
         return view('admin.makaleler.index', compact('makaleler'));
     }
 
@@ -66,53 +71,62 @@ class SohbetlerController extends Controller
         return redirect()->route('sohbetler');
 
     }
-    public function edit($id)
+    public function edit(int $id): View
     {
+        $cat = Category::where('deps_id', CategoryEnum::CATEGORY)->get();
 
-        $cat = Category::where('deps_id',1)->get();
-        $makale = Post::where('type','post')->findOrFail($id);
-        $tags = Taglar::with('tag')->where('post_id', $id)->get()->pluck('tag.tags')->toArray();
-        $tags=implode(',',$tags);
+        $makale = Post::with('catagory',
+            'tags:tags')->where('type','post')->findOrFail($id);
+
+        $tagsName = array_map(function($tag){
+            return $tag['tags'];
+        },$makale->tags->toArray());
+
+        $tags = implode(',',$tagsName);
+
         return view('admin.makaleler.edit', compact('makale', 'cat','tags'));
     }
-    public function editPost($id, Request $request)
+
+    /**
+     * @param PostRequest $request
+     * @param Post $id
+     * @return \Illuminate\Http\RedirectResponse
+     */
+    public function editPost(PostRequest $request,Post $id)
     {
+        //dd($request->all(),$id);
+        $data = [
+            'title' => $request->title,
+            'slug' => $request->slug,
+            'description' => $request->editor,
+            'status' => $request->status,
+            'type' => 'post',
+            'post_type' => 'sohbet',
+            'embed' => $request->embed,
+            'cover' => $request->media,
+        ];
 
-        $makale = Post::find($id);
-        if ($request->media) {
-            $makale->cover = $request->media;
-        }
-        $makale->title = $request->title;
-        $makale->c_id = $request->cat;
-        $makale->slug = $request->slug;
-        $makale->embed = $request->embed;
-        $makale->description = $request->editor;
-        $makale->status = $request->status;
-        $parcala = explode(",", $request->etiket);
-
-        $makaled = Taglar::where('post_id', $id);
-        $makaled->delete();
-        foreach ($parcala as $parca) {
-            $check = Tag::where('tags', $parca)->first();
-
-            if (isset($check)) {
-                $tags = new Taglar();
-                $tags->tag_id = $check->id;
-                $tags->post_id = $id;
-                $tags->save();
-            } else {
-                $ekle = new Tag();
-                $ekle->tags = $parca;
-                $ekle->save();
-                $tags = new Taglar();
-                $tags->tag_id = $ekle->id;
-                $tags->post_id = $id;
-                $tags->save();
-            }
+        if($request->cat && count($request->cat) > 0){
+            $id->catagory()->detach();
+            $id->catagory()->attach($request->cat);
         }
 
-        $makale->save();
-        toastr()->success('İçerik Başarıyla Güncellendi.', 'Başarılı');
+        $tags = explode(",", $request->etiket);
+
+        if($tags && count($tags) > 0){
+            $tagsId = array_map(function($tag){
+                return (Tag::firstOrCreate(['tags'=>$tag]))->id;
+            },$tags);
+            $id->tags()->detach();
+            $id->tags()->attach($tagsId);
+        }
+
+        try {
+            $id->update($data);
+            toastr()->success('İçerik Başarıyla Güncellendi.', 'Başarılı');
+        } catch (\Exception $e) {
+            toastr()->error($e->getMessage(), 'Başarısız');
+        }
 
         return redirect()->route('sohbetler');
 
