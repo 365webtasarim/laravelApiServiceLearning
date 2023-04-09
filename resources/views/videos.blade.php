@@ -25,7 +25,9 @@
                 @foreach($videos as $video)
                     <div class="col-sm-12 col-md-6 col-lg-4 d-flex align-self-stretch my-3">
                         <div class="card shadow-sm">
-                            <img src="{{asset($video->cover)}}" width="100%" height="225" class="card-img-top" alt="">
+                            <a href="/video/{{$video->slug}}">
+                                <img src="{{asset($video->cover)}}" width="100%" height="225" class="card-img-top" alt="">
+                            </a>
                             <div class="card-body d-flex flex-column">
                                 <a href="/video/{{$video->slug}}">
                                     <p class="fs-3 fw-bold lh-1">{{$video->title}}</p>
@@ -37,6 +39,9 @@
                         </div>
                     </div>
                 @endforeach
+
+                    {{ $videos->links('pagination::bootstrap-5') }}
+
         </div>
     </div>
 </div>

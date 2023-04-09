@@ -3261,7 +3261,6 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony import */ var owl_carousel__WEBPACK_IMPORTED_MODULE_1___default = /*#__PURE__*/__webpack_require__.n(owl_carousel__WEBPACK_IMPORTED_MODULE_1__);
 
 
-var htmlTableOfContents = __webpack_require__(/*! html-table-of-contents */ "./node_modules/html-table-of-contents/src/html-table-of-contents.js");
 $(document).ready(function () {
   var sync1 = $("#sync1");
   var sync1mobile = $("#sync1mobile");
@@ -3288,6 +3287,47 @@ $(document).ready(function () {
     navText: ['<span class="fas fa-chevron-circle-left fa-2x"></span>', '<span class="fas fa-chevron-circle-right fa-2x"></span>']
   });
 });
+$("#search-blog").hide();
+$(".search-button").click(function () {
+  $("#search-blog").slideToggle("normal");
+  return false;
+});
+$(document).ready(function () {
+  $(".search-button-result").click(function () {
+    var lang = wiy_page_data["Dil"];
+    var tbl = wiy_page_data["DilAnah"];
+    var query = $("#typeahead").val();
+    window.location.href = "/arama-sonuclari/" + query;
+  });
+});
+$(document).ready(function () {
+  $('#search_form').keypress(function (e) {
+    if (e.which == 13) {
+      e.preventDefault();
+      var query = $("#typeahead").val();
+      location.href = "/arama-sonuclari/" + query;
+      return false;
+    }
+  });
+});
+function htmlTableOfContents(documentRef) {
+  var documentRef = documentRef || document;
+  var toc = documentRef.getElementById('toc');
+  var headings = [].slice.call(documentRef.body.querySelectorAll('.content > h1, .content > h2, .content > h3, .content > h4, .content > h5, .content > h6'));
+  headings.forEach(function (heading, index) {
+    var anchor = documentRef.createElement('a');
+    anchor.setAttribute('name', 'toc' + index);
+    anchor.setAttribute('id', 'toc' + index);
+    var link = documentRef.createElement('a');
+    link.setAttribute('href', '#toc' + index);
+    link.textContent = heading.textContent;
+    var div = documentRef.createElement('li');
+    div.setAttribute('class', heading.tagName.toLowerCase());
+    div.appendChild(link);
+    toc.appendChild(div);
+    heading.parentNode.insertBefore(anchor, heading);
+  });
+}
 htmlTableOfContents();
 
 /***/ }),
@@ -8522,62 +8562,6 @@ defineJQueryPlugin(Toast);
 
 /***/ }),
 
-/***/ "./node_modules/html-table-of-contents/src/html-table-of-contents.js":
-/*!***************************************************************************!*\
-  !*** ./node_modules/html-table-of-contents/src/html-table-of-contents.js ***!
-  \***************************************************************************/
-/***/ ((module) => {
-
-/*jslint
-    white: true,
-    browser: true,
-    vars: true
-*/
-
-/**
- * Generates a table of contents for your document based on the headings
- *  present. Anchors are injected into the document and the
- *  entries in the table of contents are linked to them. The table of
- *  contents will be generated inside of the first element with the id `toc`.
- * @param {HTMLDOMDocument} documentRef Optional A reference to the document
- *  object. Defaults to `document`.
- * @author Matthew Christopher Kastor-Inare III
- * @version 20130726
- * @example
- * // call this after the page has loaded
- * htmlTableOfContents();
- */
-function htmlTableOfContents (documentRef) {
-    var documentRef = documentRef || document;
-    var toc = documentRef.getElementById('toc');
-    var headings = [].slice.call(documentRef.body.querySelectorAll('h1, h2, h3, h4, h5, h6'));
-    headings.forEach(function (heading, index) {
-        var anchor = documentRef.createElement('a');
-        anchor.setAttribute('name', 'toc' + index);
-        anchor.setAttribute('id', 'toc' + index);
-        
-        var link = documentRef.createElement('a');
-        link.setAttribute('href', '#toc' + index);
-        link.textContent = heading.textContent;
-        
-        var div = documentRef.createElement('div');
-        div.setAttribute('class', heading.tagName.toLowerCase());
-        
-        div.appendChild(link);
-        toc.appendChild(div);
-        heading.parentNode.insertBefore(anchor, heading);
-    });
-}
-
-try {
-     module.exports = htmlTableOfContents;
-} catch (e) {
-    // module.exports is not defined
-}
-
-
-/***/ }),
-
 /***/ "./resources/css/frontend/app.css":
 /*!****************************************!*\
   !*** ./resources/css/frontend/app.css ***!
@@ -12173,8 +12157,8 @@ __webpack_require__.r(__webpack_exports__);
 /******/ 		// [resolve, reject, Promise] = chunk loading, 0 = chunk loaded
 /******/ 		var installedChunks = {
 /******/ 			"/frontend/js/app": 0,
-/******/ 			"frontend/css/app": 0,
-/******/ 			"css/app": 0
+/******/ 			"css/app": 0,
+/******/ 			"frontend/css/app": 0
 /******/ 		};
 /******/ 		
 /******/ 		// no chunk on demand loading
@@ -12224,9 +12208,9 @@ __webpack_require__.r(__webpack_exports__);
 /******/ 	// startup
 /******/ 	// Load entry module and return exports
 /******/ 	// This entry module depends on other loaded chunks and execution need to be delayed
-/******/ 	__webpack_require__.O(undefined, ["frontend/css/app","css/app"], () => (__webpack_require__("./resources/js/frontend/app.js")))
-/******/ 	__webpack_require__.O(undefined, ["frontend/css/app","css/app"], () => (__webpack_require__("./resources/css/frontend/app.css")))
-/******/ 	var __webpack_exports__ = __webpack_require__.O(undefined, ["frontend/css/app","css/app"], () => (__webpack_require__("./resources/css/app.css")))
+/******/ 	__webpack_require__.O(undefined, ["css/app","frontend/css/app"], () => (__webpack_require__("./resources/js/frontend/app.js")))
+/******/ 	__webpack_require__.O(undefined, ["css/app","frontend/css/app"], () => (__webpack_require__("./resources/css/frontend/app.css")))
+/******/ 	var __webpack_exports__ = __webpack_require__.O(undefined, ["css/app","frontend/css/app"], () => (__webpack_require__("./resources/css/app.css")))
 /******/ 	__webpack_exports__ = __webpack_require__.O(__webpack_exports__);
 /******/ 	
 /******/ })()

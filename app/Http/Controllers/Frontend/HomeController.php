@@ -15,11 +15,12 @@ class HomeController extends Controller
      */
     public function index()
     {
-        $makale = Post::homePosts(limit: 6,type: 'post', post_type: 'sohbet')->get();
 
-        $video = Post::homePosts(limit: 6,type: 'video')->get();
 
-        return view('welcome', compact('makale', 'video'));
+      $makale=Post::homepage(limit:6,type:'post')->Homeposttype(posttype:'sohbet')->get();
+      $video=Post::homepage(limit:6,type:'video')->get();
+
+      return view('welcome',compact('makale','video'));
     }
 
 

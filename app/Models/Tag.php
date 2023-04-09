@@ -9,9 +9,16 @@ use App\Models\Post;
 class Tag extends Model
 {
     use HasFactory;
+
+    protected $table = 'tags';
+    protected $primaryKey = 'id';
+
+    protected $fillable = ['tags'];
+
     public $timestamps = false;
-    public function post()
+
+    public function posts()
     {
-        return $this->belongsToMany(Post::class,'taglars','tag_id');
+        return $this->belongsToMany(Post::class,'taglars','tag_id','post_id');
     }
 }

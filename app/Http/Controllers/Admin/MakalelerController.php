@@ -90,9 +90,8 @@ class MakalelerController extends Controller
         return view('admin.koseyazilari.edit', compact('makale', 'cat','tags'));
     }
 
-    public function editPost($id, Request $request)
+    public function editPost(Request $request,$id)
     {
-        //   dd($request);
         $makale = Post::find($id);
         if ($request->media) {
             $makale->cover = $request->media;
