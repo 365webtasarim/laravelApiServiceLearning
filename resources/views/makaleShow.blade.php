@@ -35,8 +35,11 @@
                 <img src="{{asset($makale->cover)}}" alt="" class="img-fluid entry-img">
                 <div class="meta-info mt-2">
                     <span class="me-4 fw-bold"><i class="far fa-calendar-alt"></i> {{$makale->updated_at->format('d/m/Y')}}</span>
-                    <span class="me-4"><i class="fas fa-folder"></i> <a
-                            href="/kategori/{{$makale->catagory->slug}}"> {{$makale->catagory->title}}</a></span>
+                    <span class="me-4"><i class="fas fa-folder"></i>
+                        @foreach($makale->catagory as $cat)
+                            <a href="/kategori/{{$cat->slug}}"> {{$cat->title}}</a>
+                        @endforeach
+                    </span>
                     <span class="me-4"><i class="fas fa-eye"></i> {{$makale->hit}}</span>
                 </div>
                 <ul id="toc" class="border my-2 p-3">

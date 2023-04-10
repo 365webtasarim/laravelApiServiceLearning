@@ -16,6 +16,7 @@ class CategoryController extends Controller
     public function index($cat)
     {
         $catData=Category::with('post')->where('slug',$cat)->first();
+
         if (isset($catData)){
             return view('kategori',compact('catData'));
         }

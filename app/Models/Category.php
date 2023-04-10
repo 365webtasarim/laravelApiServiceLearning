@@ -9,8 +9,10 @@ use Illuminate\Database\Eloquent\Model;
 class Category extends Model
 {
     use HasFactory;
+
     public function post()
     {
-        return $this->hasMany('App\Models\Post','c_id','id')->where('type','post')->orWhere('type','article');
+        return $this->belongsToMany(Post::class,'categories_posts','category_id','post_id')->where('type','post');
     }
+
 }

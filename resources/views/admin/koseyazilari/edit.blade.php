@@ -15,7 +15,7 @@
                             <label for="default-input" class="block mb-2 text-sm font-medium ">Kategori</label>
                             <select name="cat" id="" class="bg-white border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5">
                                 @foreach($cat as $category)
-                                    <option value="{{$category->id}}" @selected($category->id==$makale->c_id)> {{$category->title}}</option>
+                                    <option value="{{$category->id}}"  @selected( in_array($category->id, array_column($makale->catagory->toArray(), 'id'), true) )> {{$category->title}}</option>
                                 @endforeach
                             </select>
 
@@ -32,6 +32,11 @@
                             <textarea id="editor" name="editor">
                                 {{$makale->description}}
                             </textarea>
+                        </div>
+                        <div class="mb-6">
+                            <label for="embed" class="block mb-2 text-sm font-medium text-gray-900 dark:text-gray-400">Video Url</label>
+                            <input type="text" name="embed" class="bg-white-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 " value="{{ $makale->embed? $makale->embed :null }}">
+
                         </div>
                         <div class="mb-6">
                         <label for="status" class="block mb-2 text-sm font-medium text-gray-900 dark:text-gray-400">Durumu</label>

@@ -23,11 +23,11 @@ class MakaleController extends Controller
             $l_makale=Post::where('id','<',$makale->id)->where('status',1)->where('post_type','sohbet')->where('type','post')->first();
             $n_makale=Post::where('id','>',$makale->id)->where('status',1)->where('post_type','sohbet')->where('type','post')->first();
 
-            $related = Post::whereHas('taglari', function ($q) use ($makale) {
-                return $q->whereIn('tags', $makale->taglari()->pluck('tags'));
+            $related = Post::whereHas('tags', function ($q) use ($makale) {
+                return $q->whereIn('tags', $makale->tags()->pluck('tags'));
             })->where('post_type','sohbet')->where('id','!=',$makale->id)->take(3)->where('status',1)->where('type','post')->get();
-            $relatedvideo = Post::whereHas('taglari', function ($q) use ($makale) {
-                return $q->whereIn('tags', $makale->taglari()->pluck('tags'));
+            $relatedvideo = Post::whereHas('tags', function ($q) use ($makale) {
+                return $q->whereIn('tags', $makale->tags()->pluck('tags'));
             })->where('id','!=',$makale->id)->take(3)->where('status',1)->where('type','video')->get();
             return view('makaleShow',compact('makale','l_makale', 'n_makale', 'related', 'relatedvideo'));
         }

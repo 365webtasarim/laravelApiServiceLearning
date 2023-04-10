@@ -15,7 +15,7 @@ class IndexController extends Controller
 
             $query="";
 
-            $results = Article::where('title','like','%'.$request->query.'%')
+            $results = Post::where('title','like','%'.$request->query.'%')
                 ->where('status',true)
                 ->where('post_type','!=',"article")
                 ->orWhere('description','like','%'.$request->query.'%')
@@ -37,9 +37,6 @@ class IndexController extends Controller
 
 
     public function searchQuery(Request $request,$query){
-
-
-
 
 
         $results = Post::where('title','like','%'.$query.'%')

@@ -26,8 +26,8 @@ class VideoController extends Controller
         if (isset($videos)){
             $videos->hit++;
             $videos->save();
-            $related = Post::whereHas('taglari', function ($q) use ($videos) {
-                return $q->whereIn('tags', $videos->taglari()->pluck('tags'));
+            $related = Post::whereHas('tags', function ($q) use ($videos) {
+                return $q->whereIn('tags', $videos->tags()->pluck('tags'));
             })->where('type','video')->where('id','!=',$videos->id)->take(3)->get();
             return view('videoShow',compact('videos','related'));
         }

@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "02e23e5fd0532158cfb0aeb81be83bd3",
+    "content-hash": "67a953c29dd525fdb2828bdbe478a6b3",
     "packages": [
         {
             "name": "brick/math",
@@ -6165,6 +6165,56 @@
             "time": "2020-07-09T08:09:16+00:00"
         },
         {
+            "name": "hisman/laravel-make-class",
+            "version": "1.0.1",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/hisman/laravel-make-class.git",
+                "reference": "9d69f116ca92a158b2c1f4e958f08828f4142477"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/hisman/laravel-make-class/zipball/9d69f116ca92a158b2c1f4e958f08828f4142477",
+                "reference": "9d69f116ca92a158b2c1f4e958f08828f4142477",
+                "shasum": ""
+            },
+            "require-dev": {
+                "mockery/mockery": "^1.2",
+                "orchestra/testbench": "^3.7",
+                "phpunit/phpunit": "^7.4"
+            },
+            "type": "library",
+            "extra": {
+                "laravel": {
+                    "providers": [
+                        "Hisman\\MakeClass\\MakeClassServiceProvider"
+                    ]
+                }
+            },
+            "autoload": {
+                "psr-4": {
+                    "Hisman\\MakeClass\\": "src/"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "Hisman",
+                    "homepage": "https://hisman.co",
+                    "role": "Developer"
+                }
+            ],
+            "description": "Artisan command for generating a new custom class in Laravel.",
+            "support": {
+                "issues": "https://github.com/hisman/laravel-make-class/issues",
+                "source": "https://github.com/hisman/laravel-make-class/tree/master"
+            },
+            "time": "2019-03-04T06:47:06+00:00"
+        },
+        {
             "name": "laravel/breeze",
             "version": "v1.19.2",
             "source": {
@@ -8563,7 +8613,7 @@
     "prefer-stable": true,
     "prefer-lowest": false,
     "platform": {
-        "php": "^8.0.2"
+        "php": "^8.1.0"
     },
     "platform-dev": [],
     "plugin-api-version": "2.3.0"

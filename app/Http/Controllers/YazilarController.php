@@ -12,7 +12,7 @@ class YazilarController extends Controller
 {
 
     public function index(){
-        $makale=Post::where('status',1)->where('c_id','2')->orderBy('id','desc')->paginate(12);
+        $makale=Post::where('status',1)->where('type','article')->orderBy('id','desc')->paginate(12);
         return view('koseyazilari',compact('makale'));
     }
     public function yazi($slug){
@@ -20,7 +20,7 @@ class YazilarController extends Controller
         if (isset($makale)){
             $makale->hit++;
             $makale->save();
-            $related = Post::where('id','!=',$makale->id)->where('c_id','2')->inRandomOrder()->take(3)->where('status',1)->get();
+            $related = Post::where('id','!=',$makale->id)->where('type','article')->inRandomOrder()->take(3)->where('status',1)->get();
             return view('yaziShow',compact('makale','related'));
         }
         else{

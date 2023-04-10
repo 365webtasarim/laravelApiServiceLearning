@@ -3,10 +3,12 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\PostRequest;
 use App\Models\Category;
 use App\Models\Post;
 use App\Models\Tag;
 use App\Models\Taglar;
+use App\Services\VideoCreator;
 use Illuminate\Http\Request;
 
 class VideoController extends Controller
@@ -23,42 +25,12 @@ class VideoController extends Controller
 
         return view('admin.videolar.create', compact('cat'));
     }
-    public function store(Request $request)
+
+        public function store(PostRequest $request)
     {
-        $makale = new Post();
-        if ($request->media) {
-            $makale->cover = $request->media;
-        }
-        $makale->title = $request->title;
-        $makale->slug = $request->slug;
-        $makale->c_id = $request->cat;
-        $makale->description = $request->editor;
-        $makale->status = $request->status;
-        $makale->embed = $request->embed;
-        $makale->type = 'video';
-        $makale->hit = 0;
-        $makale->post_type = 'video';
-        $parcala = explode(",", $request->etiket);
-        $makale->save();
 
-        foreach ($parcala as $parca) {
-            $check = Tag::where('tags', $parca)->first();
-
-            if (isset($check)) {
-                $tags = new Taglar();
-                $tags->tag_id = $check->id;
-                $tags->post_id = $makale->id;
-                $tags->save();
-            } else {
-                $ekle = new Tag();
-                $ekle->tags = $parca;
-                $ekle->save();
-                $tags = new Taglar();
-                $tags->tag_id = $ekle->id;
-                $tags->post_id = $makale->id;
-                $tags->save();
-            }
-        }
+        $makale = new VideoCreator($request);
+        $makale->create();
 
         toastr()->success('İçerik Başarıyla Eklendi.', 'Başarılı');
 
@@ -68,49 +40,25 @@ class VideoController extends Controller
     public function edit($id)
     {
         $cat = Category::where('deps_id',1)->get();
-        $makale = Post::where('type','video')->findOrFail($id); 
-        $tags = Taglar::with('tag')->where('post_id', $id)->get()->pluck('tag.tags')->toArray();
-        $tags=implode(',',$tags);
+        $makale = Post::with('catagory',
+            'tags:tags')->where('type','video')->findOrFail($id);
+        $tagsName = array_map(function ($tag) {
+            return $tag['tags'];
+        }, $makale->tags->toArray());
+
+        $tags = implode(',', $tagsName);
+
         return view('admin.videolar.edit', compact('makale', 'cat','tags'));
     }
     public function editPost($id, Request $request)
     {
-        //   dd($request);
-        $makale = Post::find($id);
-        if ($request->media) {
-            $makale->cover = $request->media;
+        $editData = new VideoCreator($request, $id->id);
+        try {
+            $editData->update();
+            toastr()->success('İçerik Başarıyla Güncellendi.', 'Başarılı');
+        } catch (\Exception $e) {
+            toastr()->error($e->getMessage(), 'Başarısız');
         }
-        $makale->title = $request->title;
-        $makale->c_id = $request->cat;
-        $makale->slug = $request->slug;
-        $makale->embed = $request->embed;
-        $makale->description = $request->editor;
-        $makale->status = $request->status;
-        $parcala = explode(",", $request->etiket);
-        $makaled = Taglar::where('post_id', $id);
-        $makaled->delete();
-        foreach ($parcala as $parca) {
-            $check = Tag::where('tags', $parca)->first();
-
-            if (isset($check)) {
-                $tags = new Taglar();
-                $tags->tag_id = $check->id;
-                $tags->post_id = $id;
-                $tags->save();
-            } else {
-                $ekle = new Tag();
-                $ekle->tags = $parca;
-                $ekle->save();
-                $tags = new Taglar();
-                $tags->tag_id = $ekle->id;
-                $tags->post_id = $id;
-                $tags->save();
-            }
-        }
-
-        $makale->save();
-        toastr()->success('İçerik Başarıyla Güncellendi.', 'Başarılı');
-
         return redirect()->route('videolar');
 
     }

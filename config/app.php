@@ -187,7 +187,7 @@ return [
          */
         Yoeunes\Toastr\ToastrServiceProvider::class,
         Barryvdh\Debugbar\ServiceProvider::class,
-
+        Hisman\MakeClass\MakeClassServiceProvider::class,
         /*
          * Application Service Providers...
          */
