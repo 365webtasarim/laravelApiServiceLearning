@@ -54,4 +54,24 @@ class IndexController extends Controller
         return view('contact');
 
     }
+    public function contactPost(Request $request){
+
+        $details = [
+            'name' => $request->name,
+            'message' => $request->message,
+            'emailAddress' => $request->emailAddress,
+        ];
+
+        \Mail::to('365webtasarim@gmail.com')->send(new \App\Mail\Iletisim($details));
+
+        dd("Email is Sent.");
+        return view('contact');
+
+    }
+    public function info(){
+        $results = Post::where('title','hayati')->first();
+
+        return view('info',compact('results'));
+
+    }
 }

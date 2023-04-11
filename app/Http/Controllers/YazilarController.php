@@ -13,7 +13,8 @@ class YazilarController extends Controller
 
     public function index(){
         $makale=Post::where('status',1)->where('type','article')->orderBy('id','desc')->paginate(12);
-        return view('koseyazilari',compact('makale'));
+        $related = Post::where('type','article')->take(3)->where('status',1)->orderBy('hit','desc')->get();
+        return view('koseyazilari',compact('makale','related'));
     }
     public function yazi($slug){
         $makale=Post::where('slug',$slug)->where('status',1)->where('type','article')->first();

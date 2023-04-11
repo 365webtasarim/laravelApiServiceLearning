@@ -8,4 +8,8 @@ use Illuminate\Database\Eloquent\Model;
 class Comment extends Model
 {
     use HasFactory;
+    public function post()
+    {
+        return $this->hasOne(Post::class,'id','post_id');
+    }
 }

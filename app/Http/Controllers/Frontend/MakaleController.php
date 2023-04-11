@@ -15,7 +15,7 @@ class MakaleController extends Controller
   public function makaleShow($slug)
     {
 
-        $makale=Post::with('catagory')->where('slug',$slug)->where('status',1)->where('post_type','sohbet')->where('type','post')->first();
+        $makale=Post::with('catagory','comment')->where('slug',$slug)->where('status',1)->where('post_type','sohbet')->where('type','post')->first();
 
         if (isset($makale)){
             $makale->hit++;

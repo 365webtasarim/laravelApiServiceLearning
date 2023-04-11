@@ -97,6 +97,45 @@
                     </ul>
                 </div>
             </div>
+            <div class="col-lg-4">
+                <div class="title-box d-flex bg-top-2 justify-content-center align-items-center p-2 fw-bold">
+                    En Çok Okunanlar
+                </div>
+
+                <div class="related-article my-3">
+                    <ul class="sidebar-item">
+
+                        @foreach($related as $article)
+
+                            <li>
+                                <div class="item">
+                                    <a href="{{asset("kose-yazisi/".$article->slug)}}" title="{{$article->title}}" rel="bookmark">
+                                        <div class="post-thumbnail t-effect h-shine">
+                                            <img  src="{{asset('image/haydar-bas-kose-yazisi.jpg')}}"  width="297" height="220" class="">
+                                        </div>
+                                        <!-- post-thumbnail /-->
+
+                                        <h3>{{$article->title}}</h3>
+                                        <span class="overlay"></span>
+                                    </a>
+
+                                    <div class="posts-information">
+
+                                        <ul>
+                                            <li><i class="far fa-calendar-alt"></i>{{$article->updated_at->format('d/m/Y')}}</li>
+                                        </ul>
+
+                                    </div><!-- .posts-information -->
+
+                                </div>
+                            </li>
+                        @endforeach
+                    </ul>
+
+                </div>
+
+
+            </div>
 
             {{ $makale->links('pagination::bootstrap-5') }}
 {{--            @foreach($makale as $item)--}}

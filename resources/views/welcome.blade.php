@@ -95,7 +95,7 @@
                                    <span class="date">
                                            <i class="far fa-calendar-alt"></i> {{$item->updated_at->format('d/m/Y')}}
                                        </span>
-                                    <a href="" class="btn btn-dvm">DEVAMINI OKU</a>
+                                    <a  href="makale/{{$item->slug}}" class="btn btn-dvm">DEVAMINI OKU</a>
                                 </div>
                             </div>
                         </div>

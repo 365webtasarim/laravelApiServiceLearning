@@ -1,8 +1,9 @@
 import 'bootstrap'
 import 'owl.carousel'
+import axios from 'axios'
 
 
-$(document).ready(function(){
+$(document).ready(function () {
 
     var sync1 = $("#sync1");
     var sync1mobile = $("#sync1mobile");
@@ -31,40 +32,69 @@ $(document).ready(function(){
 });
 
 
-
 $("#search-blog").hide();
 
-$(".search-button").click(function() {
+$(".search-button").click(function () {
 
     $("#search-blog").slideToggle("normal");
     return false;
 });
 
-$(document).ready(function(){
-    $(".search-button-result").click(function() {
+$(document).ready(function () {
+    $(".search-button-result").click(function () {
 
-        var lang 	= wiy_page_data["Dil"];
-        var tbl 	= wiy_page_data["DilAnah"];
+        var lang = wiy_page_data["Dil"];
+        var tbl = wiy_page_data["DilAnah"];
         var query = $("#typeahead").val();
 
-        window.location.href  = "/arama-sonuclari/"+query;
+        window.location.href = "/arama-sonuclari/" + query;
 
+    });
+    $("#buttonSearch").click(function () {
+
+
+        var query = $("#querymobile").val();
+
+        window.location.href = "/arama-sonuclari/" + query;
+
+    });
+
+    $("#contactFormPost").click(function () {
+
+        const formData = new FormData();
+        var message = $("#message").val();
+        var name = $("#name").val();
+        var emailAddress = $("#emailAddress").val();
+
+        formData.append('message', message);
+        formData.append('name', name);
+        formData.append('emailAddress', emailAddress);
+        alert(formData);
+        const {data} = axios.post('iletisim', formData, {
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+                    'X-Requested-With': 'XMLHttpRequest',
+                }
+            }
+        )
+        return false;
     });
 });
 
-$(document).ready(function(){
+$(document).ready(function () {
     $('#search_form').keypress(function (e) {
         if (e.which == 13) {
             e.preventDefault();
             var query = $("#typeahead").val();
-            location.href  = "/arama-sonuclari/"+query;
+            location.href = "/arama-sonuclari/" + query;
             return false;
 
         }
     });
 });
 
-function htmlTableOfContents (documentRef) {
+function htmlTableOfContents(documentRef) {
     var documentRef = documentRef || document;
     var toc = documentRef.getElementById('toc');
     var headings = [].slice.call(documentRef.body.querySelectorAll('.content > h1, .content > h2, .content > h3, .content > h4, .content > h5, .content > h6'));
@@ -85,5 +115,6 @@ function htmlTableOfContents (documentRef) {
         heading.parentNode.insertBefore(anchor, heading);
     });
 }
+
 htmlTableOfContents();
 

@@ -11,6 +11,7 @@ use \App\Http\Controllers\YazilarController;
 use \App\Http\Controllers\Frontend\VideoController;
 use \App\Http\Controllers\Frontend\FotografController;
 use \App\Http\Controllers\Frontend\CategoryController;
+use \App\Http\Controllers\Frontend\IndexController;
 
 /*
 |--------------------------------------------------------------------------
@@ -34,11 +35,13 @@ Route::get('/', [\App\Http\Controllers\Frontend\HomeController::class, 'index'])
 Route::get('/arama-sonuclari', [\App\Http\Controllers\Frontend\IndexController::class, 'search']);
 Route::get('/arama-sonuclari/{query}', [\App\Http\Controllers\Frontend\IndexController::class, 'searchQuery']);
 Route::get('/makale/{slug}', [\App\Http\Controllers\Frontend\MakaleController::class, 'makaleShow']);
-Route::post('/comment-form', [\App\Http\Controllers\Frontend\MakaleController::class, 'comment'])->name('postcomment');
+Route::post('/comment-form/{id}', [\App\Http\Controllers\Frontend\MakaleController::class, 'comment'])->name('postcomment');
 Route::post('menudata', [MenuController::class, 'menudata']);
 Route::get('kategori/{cat}', [CategoryController::class, 'index']);
 Route::get('kose-yazilari', [YazilarController::class, 'index']);
 Route::get('iletisim', [IndexController::class, 'contact']);
+Route::post('iletisim', [IndexController::class, 'contactPost']);
+Route::get('hayati', [IndexController::class, 'info']);
 Route::get('kose-yazilari-guncelle', [YazilarController::class, 'guncelle']);
 Route::get('kose-yazisi/{slug}', [YazilarController::class, 'yazi']);
 Route::get('videolar', [VideoController::class, 'index']);

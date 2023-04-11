@@ -17,63 +17,13 @@
 {{--Main--}}
 <div class="main container">
 
-    <div class="row search-results m-2">
-
-        <h1 class="title my-5"><i class="fa fa-angle-right"></i> <strong>Arama Sonuçları:</strong> {{$query}} </h1>
+    <div class="row entry m-2">
+        <h1 class="title my-2"><i class="fa fa-angle-right"></i> <strong>PROF. DR. HAYDAR BAŞ'IN BİYOGRAFİSİ</strong></h1>
         <div class="clearfix"></div>
-
-        @if($results->total()==0)
-            <div class="col-sm-12 col-md-6 col-lg-4 d-flex align-self-stretch my-3 d-flex">
-                Arama sonuçlarına uygun eşleşme bulunamadı!!!
-            </div>
-        @else
-            @foreach($results as $result)
-
-
-                <div class="col-sm-12 col-md-6 col-lg-4 d-flex align-self-stretch my-3">
-                    <div class="card shadow-sm">
-                        @if($result->type=="post")
-                            <a href="/makale/{{$result->slug}}">
-
-                                @elseif($result->type=="video")
-                                    <a href="/video/{{$result->slug}}">
-                                        @else
-                                            <a href="/kose-yazisi/{{$result->slug}}">
-                                                @endif
-
-                                                @if($query!="")
-                                                    @if($result->cover)
-                                                        <img src="{{asset($result->cover)}}" width="100%" height="225"
-                                                             class="card-img-top" alt="">
-
-                                                    @else
-                                                        <img src="/image/haydar-bas-kose-yazisi.jpg" width="100%"
-                                                             height="225" class="card-img-top" alt="">
-
-                                                    @endif
-                                                    <div class="card-body d-flex flex-column">
-                                                        <p class="fs-3 fw-bold lh-1">
-                                                            {!! preg_replace("/\b([a-z]*${query}[a-z]*)\b/i","<strong>$1</strong>",$result->title) !!}
-                                                        </p>
-                                                    </div>
-                                                @else
-
-                                                @endif
-
-                                            </a>
-                    </div>
-
-                   </div>
-
-            @endforeach
-        @endif
-        <div class="clearfix"></div>
-        {{ $results->links('pagination::bootstrap-5') }}
-
-
+        {!! $results->description  !!}
     </div>
 
-</div>
+    </div>
 
 
 <footer class="container-fluid bg-top-2">
@@ -117,6 +67,18 @@
         }
     }
 </script>
+<style>
+    .entry{
+        line-height:1.5;
+        font-size:1em;
+    }
+    .entry li{
+        padding: 10px 0;
+    }
+    .entry h1,h2,h3,h4,h5{
+        padding: 20px 0;
+    }
+</style>
 <script src="{{asset('frontend/js/app.js')}}"></script>
 </body>
 </html>

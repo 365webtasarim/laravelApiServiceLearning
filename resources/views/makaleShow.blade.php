@@ -125,7 +125,7 @@
                     </ol>
                     <div id="respond" class="comment-respond">
                         <div id="reply-title" class="comment-reply-title">Bir cevap yazın</div>
-                        <form action="{{route('postcomment',$makale->id)}}" method="post" id="commentform" class="comment-form" novalidate>
+                        <form action="{{route('postcomment',$makale->id)}}" method="post" class="comment-form">
                             <p class="comment-notes"><span id="email-notes">E-posta hesabınız yayımlanmayacak.</span>
                                 <span class="required-field-message">Gerekli alanlar <span class="required">*</span> ile işaretlenmişlerdir</span>
                             </p>

@@ -33,6 +33,10 @@ class Post extends Model
     {
         return $this->belongsToMany(Tag::class,'taglars','post_id','tag_id');
     }
+    public function comment()
+    {
+        return $this->hasMany(Comment::class,'post_id')->where('status',1);
+    }
 
     public function scopeActive($query)
     {

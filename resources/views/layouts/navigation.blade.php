@@ -24,6 +24,9 @@
                     <x-nav-link :href="route('videolar')" :active="request()->routeIs('videolar')">
                         {{ __('Videolar') }}
                     </x-nav-link>
+                    <x-nav-link :href="route('yorumlar')" :active="request()->routeIs('yorumlar')">
+                        {{ __('Yorumlar') }}
+                    </x-nav-link>
 {{--                    <x-nav-link :href="route('menu')" :active="request()->routeIs('menu')">--}}
 {{--                        {{ __('Menü') }}--}}
 {{--                    </x-nav-link>--}}
@@ -86,6 +89,9 @@
             </x-responsive-nav-link>
             <x-responsive-nav-link :href="route('videolar')" :active="request()->routeIs('videolar')">
                 {{ __('Videolar') }}
+            </x-responsive-nav-link>
+            <x-responsive-nav-link :href="route('yorumlar')" :active="request()->routeIs('yorumlar')">
+                {{ __('Yorumlar') }}
             </x-responsive-nav-link>
 {{--            <x-responsive-nav-link :href="route('menu')" :active="request()->routeIs('menu')">--}}
 {{--                {{ __('Menü') }}--}}

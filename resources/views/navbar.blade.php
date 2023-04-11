@@ -97,7 +97,7 @@
         <fieldset>
             <div class="search">
                 <div class="input-group mb-3">
-                    <input type="text" class="form-control" placeholder="Ara">
+                    <input type="text" id="querymobile" name="querymobile" class="form-control" class="form-control" placeholder="Ara">
                     <button class="btn btn-outline-secondary" type="button" id="buttonSearch"><i class="fas fa-search"></i></button>
                 </div>
             </div>
