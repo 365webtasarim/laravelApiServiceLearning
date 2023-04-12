@@ -5777,15 +5777,23 @@ $(document).ready(function () {
     formData.append('message', message);
     formData.append('name', name);
     formData.append('emailAddress', emailAddress);
-    var _axios$post = axios__WEBPACK_IMPORTED_MODULE_2___default().post('iletisim', formData, {
+    var _axios$post$then = axios__WEBPACK_IMPORTED_MODULE_2___default().post('iletisim', formData, {
         headers: {
           'Content-Type': 'application/json',
           'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
           'X-Requested-With': 'XMLHttpRequest'
         }
+      }).then(function (reponse) {
+        if (reponse.data.success == "success") {
+          $("#contactForm").hide();
+          $("#response").html('Mesajınız Başarı ile Gönderildi...');
+        } else {
+          $("#contactForm").hide();
+          $("#response").html('Mesajınız Gönderilirken Sorun Oluştu Lütfen Tekrar Deneyiniz...');
+        }
+        console.log(reponse);
       }),
-      data = _axios$post.data;
-    console.log(data);
+      data = _axios$post$then.data;
     return false;
   });
 });

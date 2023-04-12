@@ -64,10 +64,10 @@ class IndexController extends Controller
             Mail::to('365webtasarim@gmail.com')->send(new Iletisim($details));
         }catch (\Exception $e) {
 
-            return $e->getMessage();
+            return response()->json(['error' => $e->getMessage(), 401]);
         }
 
-        return true;
+        return response()->json(['success' => 'success', 200]);
 
     }
     public function info(){

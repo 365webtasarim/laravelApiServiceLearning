@@ -76,8 +76,16 @@ $(document).ready(function () {
                     'X-Requested-With': 'XMLHttpRequest',
                 }
             }
-        )
-        console.log(data);
+        ).then((reponse)=>{
+            if (reponse.data.success=="success"){
+                $("#contactForm").hide();
+                $("#response").html('Mesajınız Başarı ile Gönderildi...');
+            }else{
+                $("#contactForm").hide();
+                $("#response").html('Mesajınız Gönderilirken Sorun Oluştu Lütfen Tekrar Deneyiniz...');
+            }
+            console.log(reponse);
+        })
         return false;
     });
 });

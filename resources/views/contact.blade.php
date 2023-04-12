@@ -42,7 +42,7 @@
     <div class="col-lg-12 search-results m-2">
         <!-- Wrapper container -->
         <div class="container py-4">
-
+<div id="response"></div>
             <!-- Bootstrap 5 starter form -->
             <form id="contactForm">
 @csrf
