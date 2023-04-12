@@ -21,7 +21,7 @@ class MakalelerController extends Controller
      */
     public function index()
     {
-        $makaleler = Post::where('type','article')->get();
+        $makaleler = Post::article()->get();
 
         return view('admin.koseyazilari.index', compact('makaleler'));
     }

@@ -1,6 +1,6 @@
 @import "fontawesome-free/css/all.css";
 @import "bootstrap/dist/css/bootstrap.min.css";
-@import "bootstrap-select/dist/css/bootstrap-select.css";
+
 
 @import "toastr";
 @tailwind base;

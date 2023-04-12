@@ -19,6 +19,7 @@ class Post extends Model
         'slug',
         'cover',
         'hit',
+        'c_id',
         'embed',
         'status',
         'type',

@@ -69,7 +69,6 @@ $(document).ready(function () {
         formData.append('message', message);
         formData.append('name', name);
         formData.append('emailAddress', emailAddress);
-        alert(formData);
         const {data} = axios.post('iletisim', formData, {
                 headers: {
                     'Content-Type': 'application/json',
@@ -78,6 +77,7 @@ $(document).ready(function () {
                 }
             }
         )
+        console.log(data);
         return false;
     });
 });

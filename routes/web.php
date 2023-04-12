@@ -50,7 +50,8 @@ Route::get('video/{slug}', [VideoController::class, 'izle']);
 //Backend
 Route::group(['middleware' => 'auth','prefix'=>'admin'], function () {
         Route::get('dashboard', function () {
-            return view('dashboard');
+            $comments=\App\Models\Comment::where('status',0)->get();
+            return view('dashboard',compact('comments'));
         })->middleware(['auth'])->name('dashboard');
         Route::prefix('koseyazilari')->group(function () {
             Route::get('/', [MakalelerController::class, 'index'])->middleware(['auth'])->name('koseyazilari');

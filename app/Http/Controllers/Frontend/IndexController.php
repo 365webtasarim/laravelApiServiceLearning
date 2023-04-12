@@ -3,9 +3,11 @@
 namespace App\Http\Controllers\Frontend;
 
 use App\Http\Controllers\Controller;
+use App\Mail\Iletisim;
 use App\Models\Article;
 use App\Models\Post;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Mail;
 
 class IndexController extends Controller
 {
@@ -55,17 +57,17 @@ class IndexController extends Controller
 
     }
     public function contactPost(Request $request){
+        try {
+            $details =array('name' => $request->name,
+                'message' => $request->message,
+                'emailAddress' => $request->emailAddress);
+            Mail::to('365webtasarim@gmail.com')->send(new Iletisim($details));
+        }catch (\Exception $e) {
 
-        $details = [
-            'name' => $request->name,
-            'message' => $request->message,
-            'emailAddress' => $request->emailAddress,
-        ];
+            return $e->getMessage();
+        }
 
-        \Mail::to('365webtasarim@gmail.com')->send(new \App\Mail\Iletisim($details));
-
-        dd("Email is Sent.");
-        return view('contact');
+        return true;
 
     }
     public function info(){

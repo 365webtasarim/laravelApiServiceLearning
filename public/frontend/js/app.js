@@ -5777,7 +5777,6 @@ $(document).ready(function () {
     formData.append('message', message);
     formData.append('name', name);
     formData.append('emailAddress', emailAddress);
-    alert(formData);
     var _axios$post = axios__WEBPACK_IMPORTED_MODULE_2___default().post('iletisim', formData, {
         headers: {
           'Content-Type': 'application/json',
@@ -16924,8 +16923,8 @@ process.umask = function() { return 0; };
 /******/ 		// [resolve, reject, Promise] = chunk loading, 0 = chunk loaded
 /******/ 		var installedChunks = {
 /******/ 			"/frontend/js/app": 0,
-/******/ 			"css/app": 0,
-/******/ 			"frontend/css/app": 0
+/******/ 			"frontend/css/app": 0,
+/******/ 			"css/app": 0
 /******/ 		};
 /******/ 		
 /******/ 		// no chunk on demand loading
@@ -16975,9 +16974,9 @@ process.umask = function() { return 0; };
 /******/ 	// startup
 /******/ 	// Load entry module and return exports
 /******/ 	// This entry module depends on other loaded chunks and execution need to be delayed
-/******/ 	__webpack_require__.O(undefined, ["css/app","frontend/css/app"], () => (__webpack_require__("./resources/js/frontend/app.js")))
-/******/ 	__webpack_require__.O(undefined, ["css/app","frontend/css/app"], () => (__webpack_require__("./resources/css/frontend/app.css")))
-/******/ 	var __webpack_exports__ = __webpack_require__.O(undefined, ["css/app","frontend/css/app"], () => (__webpack_require__("./resources/css/app.css")))
+/******/ 	__webpack_require__.O(undefined, ["frontend/css/app","css/app"], () => (__webpack_require__("./resources/js/frontend/app.js")))
+/******/ 	__webpack_require__.O(undefined, ["frontend/css/app","css/app"], () => (__webpack_require__("./resources/css/frontend/app.css")))
+/******/ 	var __webpack_exports__ = __webpack_require__.O(undefined, ["frontend/css/app","css/app"], () => (__webpack_require__("./resources/css/app.css")))
 /******/ 	__webpack_exports__ = __webpack_require__.O(__webpack_exports__);
 /******/ 	
 /******/ })()
