@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Mail\Iletisim;
 use App\Models\Article;
 use App\Models\Post;
+use App\Models\Slider;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Mail;
 
@@ -74,6 +75,11 @@ class IndexController extends Controller
         $results = Post::where('slug','hayati')->first();
 
         return view('info',compact('results'));
+
+    }
+    public function slider(){
+        $sliderImg = Slider::get();
+        return response()->json($sliderImg);
 
     }
 }

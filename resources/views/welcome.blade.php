@@ -9,12 +9,14 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
     <link rel="stylesheet" href="{{asset('frontend/css/app.css')}}">
 </head>
-<body>
+<body >
 {{--Navbar--}}
 
 @include('navbar')
+<div id="app">
+    <slyt></slyt>
 
-
+</div>
 {{--Slider--}}
 <div id="sync1" class="owl-carousel owl-theme">
     <div class="item">
@@ -294,5 +296,6 @@
     }
 </script>
 <script src="{{asset('frontend/js/app.js')}}"></script>
+
 </body>
 </html>

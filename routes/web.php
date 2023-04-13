@@ -32,6 +32,7 @@ use \App\Http\Controllers\Frontend\IndexController;
 Route::get('/', [\App\Http\Controllers\Frontend\HomeController::class, 'index'])->name('home');
 // Arama Sonuçları
 
+Route::get('/slider', [\App\Http\Controllers\Frontend\IndexController::class, 'slider']);
 Route::get('/arama-sonuclari', [\App\Http\Controllers\Frontend\IndexController::class, 'search']);
 Route::get('/arama-sonuclari/{query}', [\App\Http\Controllers\Frontend\IndexController::class, 'searchQuery']);
 Route::get('/makale/{slug}', [\App\Http\Controllers\Frontend\MakaleController::class, 'makaleShow']);

@@ -1,8 +1,11 @@
 import 'bootstrap'
 import 'owl.carousel'
 import axios from 'axios'
-
-
+import { createApp } from 'vue';
+import slider from "./slider.vue";
+const app=createApp({});
+app.component('slyt',slider);
+app.mount('#app');
 $(document).ready(function () {
 
     var sync1 = $("#sync1");
