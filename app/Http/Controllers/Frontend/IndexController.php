@@ -71,7 +71,7 @@ class IndexController extends Controller
 
     }
     public function info(){
-        $results = Post::where('title','hayati')->first();
+        $results = Post::where('slug','hayati')->first();
 
         return view('info',compact('results'));
 

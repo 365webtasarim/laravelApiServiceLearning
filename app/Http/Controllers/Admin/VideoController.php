@@ -50,7 +50,7 @@ class VideoController extends Controller
 
         return view('admin.videolar.edit', compact('makale', 'cat','tags'));
     }
-    public function editPost($id, Request $request)
+    public function editPost(PostRequest $request, Post $id)
     {
         $editData = new VideoCreator($request, $id->id);
         try {

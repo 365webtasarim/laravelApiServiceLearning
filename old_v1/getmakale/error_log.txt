@@ -1,8 +1,0 @@
-[03-Sep-2022 12:12:02 UTC] PHP Warning:  file_get_contents(): https:// wrapper is disabled in the server configuration by allow_url_fopen=0 in /home/phbeorg/public_html/getmakale/simple_html_dom.php on line 82
-[03-Sep-2022 12:12:02 UTC] PHP Warning:  file_get_contents(https://www.yenimesaj.com.tr/munafiklarin-bariz-sifatlari-H1450193.htm): Failed to open stream: no suitable wrapper could be found in /home/phbeorg/public_html/getmakale/simple_html_dom.php on line 82
-[03-Sep-2022 12:12:02 UTC] PHP Warning:  file_get_contents(): https:// wrapper is disabled in the server configuration by allow_url_fopen=0 in /home/phbeorg/public_html/getmakale/simple_html_dom.php on line 82
-[03-Sep-2022 12:12:02 UTC] PHP Warning:  file_get_contents(https://www.yenimesaj.com.tr/munafiklarin-bariz-sifatlari-H1450193.htm): Failed to open stream: no suitable wrapper could be found in /home/phbeorg/public_html/getmakale/simple_html_dom.php on line 82
-[03-Sep-2022 12:12:02 UTC] PHP Fatal error:  Uncaught Error: Call to a member function find() on bool in /home/phbeorg/public_html/getmakale/index.php:21
-Stack trace:
-#0 {main}
-  thrown in /home/phbeorg/public_html/getmakale/index.php on line 21
