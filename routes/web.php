@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\SlidersController;
 use Illuminate\Support\Facades\Route;
 use \App\Http\Controllers\Admin\MakalelerController;
 use \App\Http\Controllers\Admin\SohbetlerController;
@@ -35,7 +36,7 @@ Route::get('/', [\App\Http\Controllers\Frontend\HomeController::class, 'index'])
 Route::get('/slider', [\App\Http\Controllers\Frontend\IndexController::class, 'slider']);
 Route::get('/arama-sonuclari', [\App\Http\Controllers\Frontend\IndexController::class, 'search']);
 Route::get('/arama-sonuclari/{query}', [\App\Http\Controllers\Frontend\IndexController::class, 'searchQuery']);
-Route::get('/makale/{slug}', [\App\Http\Controllers\Frontend\MakaleController::class, 'makaleShow']);
+Route::get('/makale/{slug}', [\App\Http\Controllers\Frontend\MakaleController::class, 'makaleShow'])->name('sohbetoku');
 Route::post('/comment-form/{id}', [\App\Http\Controllers\Frontend\MakaleController::class, 'comment'])->name('postcomment');
 Route::post('menudata', [MenuController::class, 'menudata']);
 Route::get('kategori/{cat}', [CategoryController::class, 'index']);
@@ -44,10 +45,10 @@ Route::get('iletisim', [IndexController::class, 'contact']);
 Route::post('iletisim', [IndexController::class, 'contactPost']);
 Route::get('hayati', [IndexController::class, 'info']);
 Route::get('kose-yazilari-guncelle', [YazilarController::class, 'guncelle']);
-Route::get('kose-yazisi/{slug}', [YazilarController::class, 'yazi']);
+Route::get('kose-yazisi/{slug}', [YazilarController::class, 'yazi'])->name('yaziOku');
 Route::get('videolar', [VideoController::class, 'index']);
 Route::get('fotograflari', [FotografController::class, 'index']);
-Route::get('video/{slug}', [VideoController::class, 'izle']);
+Route::get('video/{slug}', [VideoController::class, 'izle'])->name('videoizle');
 //Backend
 Route::group(['middleware' => 'auth','prefix'=>'admin'], function () {
         Route::get('dashboard', function () {
@@ -80,6 +81,13 @@ Route::group(['middleware' => 'auth','prefix'=>'admin'], function () {
         Route::post('/create', [YorumlarController::class, 'store'])->middleware(['auth'])->name('YorumlarCreatePost');
         Route::post('/check-slug', [YorumlarController::class, 'checkSlug'])->middleware(['auth']);
         Route::delete('/{id}', [YorumlarController::class, 'destroy'])->middleware(['auth'])->name('YorumlarDelete');
+    });
+    Route::prefix('sliders')->group(function () {
+        Route::get('/', [SlidersController::class, 'index'])->middleware(['auth'])->name('sliders');
+        Route::post('/', [SlidersController::class, 'all'])->middleware(['auth'])->name('allSliders');
+        Route::get('/edit/{id}', [SlidersController::class, 'edit'])->middleware(['auth'])->name('editSlider');
+        Route::post('/edit/{id}', [SlidersController::class, 'editSlider'])->middleware(['auth'])->name('editSliderPost');
+        Route::delete('/{id}', [SlidersController::class, 'destroy'])->middleware(['auth'])->name('deleteSlider');
     });
     Route::prefix('videolar')->group(function () {
         Route::get('/', [Video::class, 'index'])->middleware(['auth'])->name('videolar');

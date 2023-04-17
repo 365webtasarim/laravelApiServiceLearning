@@ -13,37 +13,8 @@
 {{--Navbar--}}
 
 @include('navbar')
-<div id="app">
-    <slyt></slyt>
+@include('frontend.slider')
 
-</div>
-{{--Slider--}}
-<div id="sync1" class="owl-carousel owl-theme">
-    <div class="item">
-        <img src="{{asset('image/enstitu-slider.jpg')}}" alt="">
-    </div>
-    <div class="item">
-        <img src="{{asset('image/slider1.jpg')}}" alt="">
-    </div>
-    <div class="item">
-        <img src="{{asset('image/sliderhde2.jpg')}}" alt="">
-    </div>
-
-</div>
-{{--Slider--}}
-<div id="sync1mobile" class="owl-carousel owl-theme">
-      <div class="item">
-        <img src="{{asset('image/mobile-hbe-slider.jpg')}}" alt="">
-    </div>
-    <div class="item">
-        <img src="{{asset('image/slidermobile1.jpg')}}" alt="">
-    </div>
-    <div class="item">
-        <img src="{{asset('image/slidermobile2.jpg')}}" alt="">
-    </div>
-</div>
-
-{{--Main--}}
 <div class="main">
 
     {{--    Makale başlık--}}

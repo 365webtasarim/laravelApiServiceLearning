@@ -1,14 +1,24 @@
 <x-app-layout>
     <x-slot name="header">
         <h2 class="font-semibold text-xl text-gray-800 leading-tight">
-            {{ __('Yorum Düzenle') }}
+            {{ __('Yorumlar') }}
         </h2>
     </x-slot>
+    <section class="content-header">
+        <div class="container-fluid">
+            <div class="row mb-2">
 
-    <div class="py-12">
-        <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
-            <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
-                <div class="p-6 bg-white border-b border-gray-200">
+            </div>
+        </div><!-- /.container-fluid -->
+    </section>
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title">Yorumlar</h3>
+                </div>
+                <!-- /.card-header -->
+                <div class="card-body">
                     <form  method="POST" enctype='multipart/form-data'>
                         @csrf
                         <div class="mb-6">
@@ -46,14 +56,23 @@
                     </form>
 
                 </div>
-
             </div>
         </div>
     </div>
-    <script>
-        $(document).ready(function () {
-            CKEDITOR.replace('editor');
+    <x-slot name="js">
+        $('#example2').DataTable({
+        "paging": true,
+        language: {
+        url: '//cdn.datatables.net/plug-ins/1.13.4/i18n/tr.json',
+        },
+        "lengthChange": false,
+        "searching": true,
+        "ordering": true,
+        "info": true,
+        "autoWidth": false,
+        "responsive": true,
+        });
+    </x-slot>
 
-            });
-    </script>
 </x-app-layout>
+

@@ -4,25 +4,35 @@
             {{ __('Makale Düzenle') }}
         </h2>
     </x-slot>
+    <section class="content-header">
+        <div class="container-fluid">
+            <div class="row mb-2">
 
-    <div class="py-12">
-        <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
-            <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
-                <div class="p-6 bg-white border-b border-gray-200">
+            </div>
+        </div><!-- /.container-fluid -->
+    </section>
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title">Makale Düzenle</h3>
+                </div>
+                <!-- /.card-header -->
+                <div class="card-body">
                     <form id="app" method="post" action="{{ route('editSohbetPost',['id'=>$makale->id]) }}">
                         @csrf
                         <div class="mb-6">
                             <label for="default-input" class="block mb-2 text-sm font-medium ">Kategori</label>
                             <ul class="items-center w-full text-sm font-medium text-gray-900 bg-white border border-gray-200 rounded-lg sm:flex dark:bg-gray-700 dark:border-gray-600 dark:text-white">
                                 @foreach($cat as $category)
-                                    <li class="w-full border-b border-gray-200 sm:border-b-0 sm:border-r dark:border-gray-600">
+                                    <li class="w-full">
                                         <div class="flex items-center pl-3">
                                             <input id="vue-checkbox-list"
                                                    @checked( in_array($category->id, array_column($makale->catagory->toArray(), 'id'), true) ) type="checkbox"
                                                    name="cat[]" value="{{$category->id}}"
                                                    class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-700 dark:focus:ring-offset-gray-700 focus:ring-2 dark:bg-gray-600 dark:border-gray-500">
                                             <label for="vue-checkbox-list"
-                                                   class="w-full py-3 ml-2 text-sm font-medium text-gray-900 dark:text-gray-300">{{$category->title}}</label>
+                                                   class="w-full m-2 text-sm font-medium text-gray-900 dark:text-gray-500">{{$category->title}}</label>
                                         </div>
                                     </li>
                                 @endforeach
@@ -79,9 +89,13 @@
             </div>
         </div>
     </div>
-    <script>
+    <x-slot name="js">
+
         $(document).ready(function () {
-            CKEDITOR.replace('editor');
+        CKEDITOR.replace('editor');
+
         });
-    </script>
+
+    </x-slot>
+
 </x-app-layout>

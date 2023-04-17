@@ -1,7 +1,7 @@
 <x-app-layout>
     <x-slot name="header">
         <h2 class="font-semibold text-xl text-gray-800 leading-tight">
-            {{ __('Makale Düzenle') }}
+            {{ __(' Video Düzenle') }}
         </h2>
     </x-slot>
 
@@ -15,14 +15,14 @@
                             <label for="default-input" class="block mb-2 text-sm font-medium ">Kategori</label>
                             <ul class="items-center w-full text-sm font-medium text-gray-900 bg-white border border-gray-200 rounded-lg sm:flex dark:bg-gray-700 dark:border-gray-600 dark:text-white">
                                 @foreach($cat as $category)
-                                    <li class="w-full border-b border-gray-200 sm:border-b-0 sm:border-r dark:border-gray-600">
+                                    <li class="w-full">
                                         <div class="flex items-center pl-3">
                                             <input id="vue-checkbox-list"
                                                    @checked( in_array($category->id, array_column($makale->catagory->toArray(), 'id'), true) ) type="checkbox"
                                                    name="cat[]" value="{{$category->id}}"
                                                    class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-700 dark:focus:ring-offset-gray-700 focus:ring-2 dark:bg-gray-600 dark:border-gray-500">
                                             <label for="vue-checkbox-list"
-                                                   class="w-full py-3 ml-2 text-sm font-medium text-gray-900 dark:text-gray-300">{{$category->title}}</label>
+                                                   class="w-full m-2 text-sm font-medium text-gray-900 dark:text-gray-500">{{$category->title}}</label>
                                         </div>
                                     </li>
                                 @endforeach
@@ -73,10 +73,14 @@
             </div>
         </div>
     </div>
-    <script>
-        $(document).ready(function () {
-            CKEDITOR.replace('editor');
+    <x-slot name="js">
 
-            });
-    </script>
+        $(document).ready(function () {
+        CKEDITOR.replace('editor');
+
+        });
+
+    </x-slot>
+
+
 </x-app-layout>

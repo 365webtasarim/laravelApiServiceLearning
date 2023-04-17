@@ -1,13 +1,14 @@
 import 'bootstrap'
 import 'owl.carousel'
+
 import axios from 'axios'
 import { createApp } from 'vue';
 import slider from "./slider.vue";
 const app=createApp({});
 app.component('slyt',slider);
 app.mount('#app');
-$(document).ready(function () {
 
+$(document).ready(function () {
     var sync1 = $("#sync1");
     var sync1mobile = $("#sync1mobile");
     var slidesPerPage = 3; //globaly define number of elements per page
@@ -20,7 +21,7 @@ $(document).ready(function () {
         dots: true,
         loop: true,
         responsiveRefreshRate: 200,
-        navText: ['<span class="fas fa-chevron-circle-left fa-2x"></span>', '<span class="fas fa-chevron-circle-right fa-2x"></span>'],
+        navText: ['<span class="fas fa-chevron-circle-left fa-2x"></span>', '<span class="fas fa-chevron-circle-right fa-2x"></span>']
     });
     sync1mobile.owlCarousel({
         items: 1,
@@ -30,10 +31,9 @@ $(document).ready(function () {
         dots: false,
         loop: true,
         responsiveRefreshRate: 200,
-        navText: ['<span class="fas fa-chevron-circle-left fa-2x"></span>', '<span class="fas fa-chevron-circle-right fa-2x"></span>'],
+        navText: ['<span class="fas fa-chevron-circle-left fa-2x"></span>', '<span class="fas fa-chevron-circle-right fa-2x"></span>']
     });
 });
-
 
 $("#search-blog").hide();
 

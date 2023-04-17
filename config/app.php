@@ -188,6 +188,7 @@ return [
         Yoeunes\Toastr\ToastrServiceProvider::class,
         Barryvdh\Debugbar\ServiceProvider::class,
         Hisman\MakeClass\MakeClassServiceProvider::class,
+        \App\Providers\SliderServicesProvider::class,
         /*
          * Application Service Providers...
          */

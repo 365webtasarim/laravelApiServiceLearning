@@ -1,7 +1,7 @@
 <x-app-layout>
     <x-slot name="header">
         <h2 class="font-semibold text-xl text-gray-800 leading-tight">
-            {{ __('Makale Ekle') }}
+            Makale Ekle
         </h2>
     </x-slot>
 
@@ -57,10 +57,13 @@
             </div>
         </div>
     </div>
-    <script>
+    <x-slot name="js">
+
         $(document).ready(function () {
-            CKEDITOR.replace('editor');
+        CKEDITOR.replace('editor');
 
         });
-    </script>
+
+    </x-slot>
+
 </x-app-layout>

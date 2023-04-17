@@ -1,36 +1,60 @@
 <template>
-    <div className="container">
-        <div className="row justify-content-center">
-            <div className="col-md-8">
-                <carousel>
-                    <img className="img-fluid" v-for="(img, index) in images" :src="img.src" :key="index">
-                </carousel>
-            </div>
-        </div>
-    </div>
+    <carousel :v-bind="settings" >
+        <slide   v-for="(img,index) in images" :key="slide">
+            <a :href="img.url">
+                    <img className="img-fluid" :src="img.src" :key="index">
+            </a>
+        </slide>
+
+        <template #addons>
+            <navigation/>
+            <pagination/>
+        </template>
+    </carousel>
+
 </template>
 <script>
-import carousel from "vue-owl-carousel";
 import axios from "axios";
+import 'vue3-carousel/dist/carousel.css'
+import {Carousel, Slide, Pagination, Navigation} from 'vue3-carousel'
+import {start} from "@popperjs/core";
 
+let axiosConfig = {
+    headers: {
+        "Access-Control-Allow-Origin": "*"
+    }
+};
 export default {
+    methods: {
+
+    },
     components: {
-        carousel
+        Carousel,
+        Slide,
+        Pagination,
+        Navigation,
     },
     props: {
         msg: String
     },
     data() {
         return {
-            images: []
+            images: [],
+            settings: {
+                itemsToShow: 1,
+                snapAlign: 'start',
+                slideWidth:'1544',
+            },
         }
     },
     created() {
-        this.axios
-            .get('http://localhost:8000/slider')
+        axios.get('http://127.0.0.1:8000/slider/', axiosConfig)
             .then(response => {
                 this.images = response.data;
             });
     }
 };
 </script>
+<style>
+
+</style>

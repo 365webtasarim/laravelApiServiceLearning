@@ -57,10 +57,13 @@
             </div>
         </div>
     </div>
-    <script>
+    <x-slot name="js">
+
         $(document).ready(function () {
-            CKEDITOR.replace('editor');
+        CKEDITOR.replace('editor');
 
         });
-    </script>
+
+    </x-slot>
+
 </x-app-layout>
