@@ -16,8 +16,12 @@ return new class extends Migration
         Schema::create('sliders', function (Blueprint $table) {
             $table->id();
             $table->string('title');
-            $table->string('url');
-            $table->string('src');
+            $table->text('description')->nullable();
+            $table->string('image_path');
+            $table->string('link_url')->nullable();
+            $table->integer('order');
+            $table->boolean('status')->default(true);
+            $table->string('device')->default('dektop');
             $table->timestamps();
         });
     }
@@ -29,6 +33,6 @@ return new class extends Migration
      */
     public function down()
     {
-        Schema::dropIfExists('sliders');
+        Schema::dropIfExists('table_sliders');
     }
 };

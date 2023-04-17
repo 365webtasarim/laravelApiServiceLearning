@@ -33,7 +33,7 @@ class SlidersController extends Controller
      */
     public function create()
     {
-        //
+        return view('admin.sliders.create');
     }
 
     /**
@@ -69,6 +69,7 @@ class SlidersController extends Controller
      $slider= Slider::find($id);
      return view('admin.sliders.edit', compact('slider'));
     }
+
 
     /**
      * Update the specified resource in storage.

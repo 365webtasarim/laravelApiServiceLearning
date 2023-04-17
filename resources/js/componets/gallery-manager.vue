@@ -29,15 +29,17 @@
         </div>
         <div class="col-lg-9 col-sm-12">
             <div class="preview-area" :class="{listView:list}">
-                <draggable v-model="images" @start="drag=true" @end="drag=false">
-                    <figure v-for="(image,index) in images">
+                <draggable v-model="images" tag="figure">
+                    <template v-for="(image, index) in images" :key="index" #item="{element}">
+
                         <img :src="image.src">
                         <div class="actions">
                             <i v-if="fields.length > 0" class="edit fa fa-pencil" @click="edit(index)"></i>
                             <i class="show fa fa-eye" :href="image.src" :data-fancybox="prefix"></i>
                             <i class="delete fa fa-close" @click="images.splice(index, 1)"></i>
                         </div>
-                    </figure>
+
+                    </template>
                 </draggable>
                 <h4 v-if="images.length==0" class="no-media">Please Select Media</h4>
             </div>
