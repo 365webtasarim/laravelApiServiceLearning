@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\SliderRequest;
 use App\Http\Resources\SliderResource;
 use App\Models\Slider;
 use Illuminate\Http\Request;
@@ -42,9 +43,15 @@ class SlidersController extends Controller
      * @param  \Illuminate\Http\Request  $request
      * @return \Illuminate\Http\Response
      */
-    public function store(Request $request)
+    public function store(SliderRequest $request)
     {
         //
+        $validated = $request->validate([
+            'title' => 'required|string|max:255|min:5'
+        ]);
+        dd($validated);
+        $link=env('APP_URL').env('STROGE_PATH').$request->file;
+        dd($link);
     }
 
     /**

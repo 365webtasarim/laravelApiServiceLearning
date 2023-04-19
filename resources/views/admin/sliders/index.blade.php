@@ -1,18 +1,18 @@
 <x-app-layout>
     <x-slot name="header">
         <h2 class="font-semibold text-xl text-gray-800 leading-tight">
-            {{ __('Köşe Yazıları') }}
+            {{ __('Slider') }}
         </h2>
     </x-slot>
     <section class="content-header">
         <div class="container-fluid">
             <div class="row mb-2">
                 <div class="col-sm-6">
-                    <h1> Köşe Yazıları</h1>
+                    <h1>Slider</h1>
                 </div>
                 <div class="col-sm-6">
                     <ol class="breadcrumb float-sm-right">
-                        <li class="breadcrumb-item"><a href="{{route('makaleCreate')}}" class="btn btn-success w-100">
+                        <li class="breadcrumb-item"><a href="{{route('sliderCreate')}}" class="btn btn-success w-100">
                                 Yeni Oluştur
                             </a></li>
                     </ol>

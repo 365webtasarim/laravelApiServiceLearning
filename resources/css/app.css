@@ -1,5 +1,6 @@
 @import "fontawesome-free/css/all.css";
 @import "bootstrap/dist/css/bootstrap.min.css";
+@import "filepond/dist/filepond.css";
 
 @import "toastr";
 @tailwind base;

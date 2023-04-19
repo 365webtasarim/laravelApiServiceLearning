@@ -89,6 +89,7 @@ Route::group(['middleware' => 'auth','prefix'=>'admin'], function () {
         Route::post('/edit/{id}', [SlidersController::class, 'editSlider'])->middleware(['auth'])->name('editSliderPost');
         Route::delete('/{id}', [SlidersController::class, 'destroy'])->middleware(['auth'])->name('deleteSlider');
         Route::get('/create', [SlidersController::class, 'create'])->middleware(['auth'])->name('sliderCreate');
+        Route::post('/create', [SlidersController::class, 'store'])->middleware(['auth'])->name('sliderPostCreate');
     });
     Route::prefix('videolar')->group(function () {
         Route::get('/', [Video::class, 'index'])->middleware(['auth'])->name('videolar');
@@ -109,6 +110,7 @@ Route::group(['middleware' => 'auth','prefix'=>'admin'], function () {
         Route::post('menuSil/{id}', [MenuController::class, 'destroy']);
 
         Route::post('media/store', [MediaController::class, 'store'])->name('media.store');
+        Route::post('media/storeMedia', [MediaController::class, 'storeMedia'])->name('media.storeMedia');
 
 });
 
