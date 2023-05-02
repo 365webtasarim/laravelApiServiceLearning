@@ -17,12 +17,8 @@ use Illuminate\Support\Facades\Route;
 
 
 Route::get('deneme',[PostController::class,'index']);
-
-Route::post('deneme',[PostController::class,'store']);
-
-Route::get('deneme/{id}',[PostController::class,'show']);
-
-Route::post('deneme/{id}',[PostController::class,'update']);
+Route::post('getinfo',[PostController::class,'index']);
+Route::post('getinfoPost',[PostController::class,'getinfoPost']);
 
 
 

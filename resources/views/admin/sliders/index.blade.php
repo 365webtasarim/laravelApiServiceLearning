@@ -28,29 +28,29 @@
                 <div class="card-body">
 
 
-                    <table id="example2" class="table table-bordered table-hover">
-                        <thead>
-                        <tr>
-                            <th>İD</th>
-                            <th>BAŞLIK</th>
-                            <th>URL</th>
-                            <th>TARİH</th>
-                            <th>İŞLEMLER</th>
-                        </tr>
-                        </thead>
-                        <tbody>
+                        <table id="example2" class="table table-bordered table-hover">
+                            <thead>
+                            <tr>
+                                <th>İD</th>
+                                <th>BAŞLIK</th>
+                                <th>CİHAZ</th>
+                                <th>TARİH</th>
+                                <th>İŞLEMLER</th>
+                            </tr>
+                            </thead>
+                            <tbody>
 
-                        </tbody>
-                        <tfoot>
-                        <tr>
-                            <th>İD</th>
-                            <th>BAŞLIK</th>
-                            <th>URL</th>
-                            <th>TARİH</th>
-                            <th>İŞLEMLER</th>
-                        </tr>
-                        </tfoot>
-                    </table>
+                            </tbody>
+                            <tfoot>
+                            <tr>
+                                <th>İD</th>
+                                <th>BAŞLIK</th>
+                                <th>CİHAZ</th>
+                                <th>TARİH</th>
+                                <th>İŞLEMLER</th>
+                            </tr>
+                            </tfoot>
+                        </table>
 
                 </div>
             </div>
@@ -59,6 +59,7 @@
     <x-slot name="js">
         $('#example2').DataTable({
         "paging": true,
+        dom: 'Bfrtip',
         ajax: {
         url: "{{route('allSliders')}}",
         headers: {'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')},
@@ -69,17 +70,22 @@
         url: '//cdn.datatables.net/plug-ins/1.13.4/i18n/tr.json',
         },
         columns: [
-            { data: 'id' },
-            { data: 'title' },
-            { data: 'url' },
-            { data: 'created_at' },
-            { data: 'action' },
+        { data: 'id' },
+        { data: 'title' },
+        { data: 'device' },
+        { data: 'created_at' },
+        { data: 'action' },
 
         ],
+        buttons: [
+        'pageLength'
+        ],
+        "order": [[ 0, "desc" ]],
         "lengthChange": false,
         "searching": true,
         "ordering": true,
         "info": true,
+        "lengthMenu": [ [10, 25, 50, -1], [10, 25, 50, "All"] ],
         "autoWidth": false,
         "responsive": true,
         });

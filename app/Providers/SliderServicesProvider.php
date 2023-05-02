@@ -27,6 +27,7 @@ class SliderServicesProvider extends ServiceProvider
        view()->composer('frontend.slider', function($view){
            $view->with('sliderShowMobile', Slider::where('status', 1)->where('device', 'mobile')->get());
            $view->with('sliderShowDesktop', Slider::where('status', 1)->where('device', 'desktop')->get());
+          
        });
     }
 }

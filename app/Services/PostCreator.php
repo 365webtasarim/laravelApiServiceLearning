@@ -24,10 +24,25 @@ class PostCreator
         if($id) {
             $this->id = $id;
         }
-
         $this->data = $this->createData($request->all());
     }
 
+    protected function imageChange($image): ?string
+    {
+
+        if (!$image || $image == null) {
+            return null;
+        }else{
+            if (stripos($image,"images")){
+                return $image;
+            }elseif (stripos($image,"storage")){
+                return $image;
+            }else{
+                return '/storage/uploads/image/'.$image;
+            }
+        }
+
+    }
     /**
      * @param $data array: request data
      * @return array
@@ -38,10 +53,12 @@ class PostCreator
             'title'         => $data['title'],
             'slug'          => $data['slug'],
             'description'   => $data['editor'],
+            'cover'   =>    $this->imageChange( $data['media'] ),
             'status'        => $data['status'],
             'embed'         => $data['embed'],
             'categories'    => $data['cat'],
             'tags'          => $data['etiket'],
+            'hit'          => $data['hit']??0,
             'type'          => 'post',
             'post_type'     => 'sohbet',
         ];
@@ -83,4 +100,8 @@ class PostCreator
         }, $tags);
         return $tags;
     }
+
+
+
+
 }

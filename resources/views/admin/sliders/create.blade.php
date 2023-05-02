@@ -33,13 +33,25 @@
                             <div class="col-md-12">
                                 <div class="form-group">
                                     <label for="title">Url</label>
-                                    <input type="text" class="form-control" name="title">
+                                    <input type="text" class="form-control" name="url">
                                 </div>
                             </div>
                             <div class="col-md-12">
                                 <div class="form-group">
-                                    <label for="title">Url</label>
-                                    <input type="text" class="form-control" name="title">
+                                    <label for="title">Cihaz</label>
+                                    <select class="form-control" name="device">
+                                        <option value="desktop">Desktop</option>
+                                        <option value="mobile">Mobile</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-md-12">
+                                <div class="form-group">
+                                    <label for="title">Durum</label>
+                                    <select class="form-control" name="status">
+                                        <option value="0">Pasif</option>
+                                        <option value="1">Aktif</option>
+                                    </select>
                                 </div>
                             </div>
                             <div class="col-md-12">
@@ -95,20 +107,8 @@
         } else {
         name = uploadedDocumentMap[file.name]
         }
-        $('form').find('input[name="document[]"][value="' + name + '"]').remove()
+        $('form').find('input[name="file"][value="' + name + '"]').remove()
         },
-        init: function () {
-        @if(isset($project) && $project->document)
-            var files =
-            {!! json_encode($project->document) !!}
-            for (var i in files) {
-            var file = files[i]
-            this.options.addedfile.call(this, file)
-            file.previewElement.classList.add('dz-complete')
-            $('form').append('<input type="hidden" name="document[]" value="' + file.file_name + '">')
-            }
-        @endif
-        }
         }
     </x-slot>
 

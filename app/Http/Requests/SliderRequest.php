@@ -25,7 +25,6 @@ class SliderRequest extends FormRequest
     {
         return [
             'title' => 'required|string|max:255|min:5',
-            'status' => 'required|int',
         ];
     }
     public function messages()

@@ -20,8 +20,8 @@ class MakaleController extends Controller
         if (isset($makale)){
             $makale->hit++;
             $makale->save();
-            $l_makale=Post::where('id','<',$makale->id)->where('status',1)->where('post_type','sohbet')->where('type','post')->first();
-            $n_makale=Post::where('id','>',$makale->id)->where('status',1)->where('post_type','sohbet')->where('type','post')->first();
+            $l_makale=Post::where('id','<',$makale->id)->where('status',1)->where('type','post')->orderBy('id','desc')->first();
+            $n_makale=Post::where('id','>',$makale->id)->where('status',1)->where('type','post')->first();
 
             $related = Post::whereHas('tags', function ($q) use ($makale) {
                 return $q->whereIn('tags', $makale->tags()->pluck('tags'));

@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Admin\GalleryContoller;
 use App\Http\Controllers\SlidersController;
 use Illuminate\Support\Facades\Route;
 use \App\Http\Controllers\Admin\MakalelerController;
@@ -55,6 +56,7 @@ Route::group(['middleware' => 'auth','prefix'=>'admin'], function () {
             $comments=\App\Models\Comment::where('status',0)->get();
             return view('dashboard',compact('comments'));
         })->middleware(['auth'])->name('dashboard');
+        Route::post('/getPost/{type}', [YazilarController::class, 'getPost'])->middleware(['auth'])->name('getPost');
         Route::prefix('koseyazilari')->group(function () {
             Route::get('/', [MakalelerController::class, 'index'])->middleware(['auth'])->name('koseyazilari');
             Route::get('/edit/{id}', [MakalelerController::class, 'edit'])->middleware(['auth'])->name('editMakale');
@@ -64,7 +66,16 @@ Route::group(['middleware' => 'auth','prefix'=>'admin'], function () {
             Route::post('/check-slug', [MakalelerController::class, 'checkSlug'])->middleware(['auth']);
             Route::delete('/{id}', [MakalelerController::class, 'destroy'])->middleware(['auth'])->name('makaleDelete');
         });
-    Route::prefix('sohbetler')->group(function () {
+    Route::prefix('galeri')->group(function () {
+        Route::get('/', [GalleryContoller::class, 'index'])->middleware(['auth'])->name('gallery');
+        Route::post('/sort', [GalleryContoller::class, 'sort'])->middleware(['auth'])->name('galleryShort');
+        Route::get('/create', [GalleryContoller::class, 'create'])->middleware(['auth'])->name('galleryCreate');
+        Route::post('/create', [GalleryContoller::class, 'galleryCreatePost'])->middleware(['auth'])->name('galleryCreatePost');
+        Route::delete('/{id}', [GalleryContoller::class, 'destroy'])->middleware(['auth'])->name('galleryDelete');
+    });
+
+
+        Route::prefix('sohbetler')->group(function () {
         Route::get('/', [SohbetlerController::class, 'index'])->middleware(['auth'])->name('sohbetler');
         Route::get('/edit/{id}', [SohbetlerController::class, 'edit'])->middleware(['auth'])->name('editSohbet');
         Route::post('/edit/{id}', [SohbetlerController::class, 'editPost'])->middleware(['auth'])->name('editSohbetPost');
@@ -111,6 +122,7 @@ Route::group(['middleware' => 'auth','prefix'=>'admin'], function () {
 
         Route::post('media/store', [MediaController::class, 'store'])->name('media.store');
         Route::post('media/storeMedia', [MediaController::class, 'storeMedia'])->name('media.storeMedia');
+        Route::post('media/storePostMedia', [MediaController::class, 'storePostMedia'])->name('media.storePostMedia');
 
 });
 

@@ -62,11 +62,12 @@
 
 
                         <div class="card shadow-sm h-100">
-                            <img src="{{asset($item->cover)}}" width="100%" height="225" class="card-img-top" alt="">
+                            <a href="makale/{{$item->slug}}">
+                                <img src="{{asset($item->cover)}}" width="100%" height="225" class="card-img-top" alt="">
                             <div class="card-body d-flex flex-column">
-                                <a href="makale/{{$item->slug}}">
+
                                     <p class="fs-3 fw-bold lh-1">{{$item->title}}</p>
-                                </a>
+
                                 <p class="text-muted position-relative">
                                     {!! Str::words(strip_tags($item->description), $limit = 22, $end = '...') !!}
                                 </p>
@@ -77,6 +78,7 @@
                                     <a  href="makale/{{$item->slug}}" class="btn btn-dvm">DEVAMINI OKU</a>
                                 </div>
                             </div>
+                            </a>
                         </div>
 
             </div>

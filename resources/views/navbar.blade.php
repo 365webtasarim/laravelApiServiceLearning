@@ -55,7 +55,7 @@
                         <li><a class="dropdown-item" href="/hayati">HAYATI</a></li>
                         <li><a class="dropdown-item" href="/kose-yazilari">KÖŞE YAZILARI</a></li>
                         <li class="nav-item">
-                            <a class="dropdown-item"  aria-current="page" href="/kategori/fotograflari">FOTOĞRAFLARI</a>
+                            <a class="dropdown-item"  aria-current="page" href="/fotograflari">FOTOĞRAFLARI</a>
                         </li>
                     </ul>
                 </li>
@@ -117,7 +117,7 @@
                     <li><a class="dropdown-item" href="/hayati">HAYATI</a></li>
                     <li><a class="dropdown-item" href="/kose-yazilari">KÖŞE YAZILARI</a></li>
                     <li class="">
-                        <a class="dropdown-item" aria-current="page" href="/kategori/fotograflari">FOTOĞRAFLARI</a>
+                        <a class="dropdown-item" aria-current="page" href="/fotograflari">FOTOĞRAFLARI</a>
                     </li>
                 </ul>
             </li>

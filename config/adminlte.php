@@ -338,6 +338,11 @@ return [
             'route'         => 'sliders',
             'icon'        => 'far fa-fw fa-file',
         ],
+        [
+            'text'        => 'Galeri',
+            'route'         => 'gallery',
+            'icon'        => 'far fa-fw fa-file',
+        ],
 
     ],
 

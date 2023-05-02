@@ -1811,3 +1811,116 @@ img {
     color: #acacac;
     display: table-cell;
 }
+
+
+/**
+		**************************************************
+						SEARCH SETTINGS
+		**************************************************
+	**/
+#search-blog {
+    padding: 20px;
+    background: #ececec;
+}
+
+#search-blog .form-control {
+    background: #fff;
+    border: 0 none !important;
+    border-radius: 0;
+    box-shadow: none;
+    font-size: 14px;
+    height: 50px;
+    text-transform: none;
+    position: relative;
+    border: 1px solid #aa0000
+}
+
+.form-control {
+    background: #fff;
+    border: 1px solid !important;
+    border-radius: 0;
+    box-shadow: none;
+    font-size: 14px;
+    height: 50px;
+    text-transform: none;
+    position: relative;
+    border: 1px solid #aa0000
+}
+
+#search-blog .input-group {
+    background-color: transparent !important;
+    width: 50%;
+    margin: 0px auto;
+    padding: 0px;
+    text-align: center;
+}
+
+#search-blog .form-group {
+    margin-bottom: 0rem;
+}
+
+.close-search {
+    float: left;
+    margin-left: 30px;
+}
+
+#search-blog .input-group-addon {
+    color: #767676;
+    font-size: 14px;
+    font-weight: 400;
+    line-height: 1;
+    padding: 18px 15px;
+    text-align: center;
+    border-right: 1px solid #ddd !important;
+    border-top: 0 solid #ddd !important;
+    border-left: 0 solid #ddd !important;
+    border-bottom: 0 solid #ddd !important;
+    background-color: #ddd;
+    border-radius: 0 !important;
+}
+
+#search-blog label a {
+    color: #fff;
+}
+
+#search-blog label {
+    color: #fff;
+    font-size: 12px;
+    font-weight: 400;
+    line-height: 1.6 !important;
+    margin: 0;
+    display: block;
+    padding: 0;
+}
+
+#search-blog .pull-right label {
+    margin-top: 2px;
+}
+
+#search-blog .btn {
+    position: absolute;
+    top: 10;
+    font-size: 16px;
+    z-index: 11;
+    height: 50px;
+    font-weight: 300;
+    border-radius: 0;
+    right: -2px;
+    border: 1px solid #447bb7;
+    color: #fff;
+    padding-top: 10px;
+}
+
+#search-blog .btn:hover {
+    background: #447bb7;
+    transform: scale(1.2, 1.2);
+    -o-transition: .1s;
+    -ms-transition: .1s;
+    -moz-transition: .1s;
+    -webkit-transition: .1s;
+}
+.vbox-content img {
+    max-width: 800px;
+    max-height: 600px;
+    object-fit: cover;
+}

@@ -8,7 +8,7 @@
 
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
     <link rel="stylesheet" href="{{asset('frontend/css/app.css')}}">
-    <link rel="stylesheet" href="{{asset('venobox/venobox.min.css')}}" type="text/css" media="screen" />
+    <link rel="stylesheet" href="{{asset('venobox/venobox.min.css')}}" type="text/css" media="screen"/>
 
     <script type='text/javascript'
             src='https://platform-api.sharethis.com/js/sharethis.js#property=630f5ce90b5e930012a9c3c7&product=sop'
@@ -23,29 +23,19 @@
 
     <div class="container my-4">
         <div class="row">
-                <div class="col-lg-3 col-sm-4 col-6 pb-4">
-                    <a class="venobox" href="/uploads/images/1674131974201-uniter.jpg" data-gall="myGallery"><img src="/uploads/images/1674131974201-uniter.jpg" alt="image alt"/></a>
-                </div>
-            </div>
 
-{{--                @foreach($videos as $video)--}}
-{{--                    <div class="col-sm-12 col-md-6 col-lg-4 d-flex align-self-stretch my-3">--}}
-{{--                        <div class="card shadow-sm">--}}
-{{--                            <img src="{{asset($video->cover)}}" width="100%" height="225" class="card-img-top" alt="">--}}
-{{--                            <div class="card-body d-flex flex-column">--}}
-{{--                                <a href="/video/{{$video->slug}}">--}}
-{{--                                    <p class="fs-3 fw-bold lh-1">{{$video->title}}</p>--}}
-{{--                                </a>--}}
-{{--                                <p class="text-muted position-relative">--}}
-{{--                                    {!! Str::words(strip_tags($video->description), $limit = 22, $end = '...') !!}--}}
-{{--                                </p>--}}
-{{--                            </div>--}}
-{{--                        </div>--}}
-{{--                    </div>--}}
-{{--                @endforeach--}}
+            @foreach($galleries as $gallery)
+                <div class="col-lg-3 col-sm-4 col-6 pb-4">
+                    <a class="venobox" data-maxwidth="100%" href="{{asset($gallery->image_path)}}" data-gall="myGallery">
+                        <img class="img-fluid w-100 h-100" src="{{asset($gallery->image_path)}}" style="max-height: 200px;" alt="image alt"/>
+                    </a>
+                </div>
+            @endforeach
+
         </div>
+
     </div>
-</div>
+</div>´
 
 <footer class="container-fluid bg-top-2">
     <div class="container py-5">

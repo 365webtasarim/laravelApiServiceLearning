@@ -28,71 +28,76 @@
                 <div class="card-body">
 
 
-                <table id="example2" class="table table-bordered table-hover">
-                    <thead>
-                    <tr>
-                        <th>TARİH</th>
-                        <th>BAŞLIK</th>
-                        <th>HİT</th>
-                        <th>İŞLEMLER</th>
-                    </tr>
-                    </thead>
-                    <tbody>
-                    @foreach($makaleler as $makale)
+                    <table id="example2" class="table table-bordered table-hover">
+                        <thead>
                         <tr>
-                            <th width="10%">{{$makale->created_at->format('Y/m/d')}}</th>
-                            <th width="70%">{{$makale->title}}</th>
-                            <th width="5%">{{$makale->hit}}</th>
-                            <td width="15%">
-                                <a class="btn btn-info btn-xs tooltips" data-container="body" data-placement="top" data-original-title="Düzenle" href="{{route('yaziOku',$makale->slug)}}">
-                                    <i class="fas fa-share"></i>
-                                </a>
-                                <a class="btn btn-success btn-xs tooltips" data-container="body" data-placement="top" data-original-title="Düzenle" href="{{route('editMakale',$makale->id)}}">
-                                    <i class="fas fa-edit"></i>
-                                </a>
-
-                                <a class="btn btn-danger btn-xs tooltips" data-container="body" data-placement="top" data-original-title="Düzenle" onclick="$(this).find('form').submit();">
-                                    <i class="fas fa-trash-alt"></i>
-                                    <form method="post" action="{{route('makaleDelete',$makale->id)}}">
-                                        @method('delete')
-                                        @csrf
-                                    </form>
-                                </a>
-
-
-                            </td>
+                            <th>#ID</th>
+                            <th>BAŞLIK</th>
+                            <th>HİT</th>
+                            <th>İŞLEMLER</th>
                         </tr>
-                    @endforeach
-                    </tbody>
-                    <tfoot>
-                    <tr>
-                        <th>TARİH</th>
-                        <th>BAŞLIK</th>
-                        <th>HİT</th>
-                        <th>İŞLEMLER</th>
-                    </tr>
-                    </tfoot>
-                </table>
+                        </thead>
+                        <tbody>
 
-            </div>
+                        </tbody>
+                        <tfoot>
+                        <tr>
+                            <th>#ID</th>
+                            <th>BAŞLIK</th>
+                            <th>HİT</th>
+                            <th>İŞLEMLER</th>
+                        </tr>
+                        </tfoot>
+                    </table>
+
+                </div>
             </div>
         </div>
     </div>
-   <x-slot name="js">
-       $('#example2').DataTable({
-       "paging": true,
+    <x-slot name="js">
+        $('#example2').DataTable({
+        "paging": true,
+        drawCallback: function() {
+        $('.form-control').addClass('bg-dark');
+        },
+        ajax: {
+        url: "{{route('getPost','article')}}",
+        headers: {'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')},
+        method: "POST",
+        dataSrc: "data"
+        },
+        language: {
+        url: '//cdn.datatables.net/plug-ins/1.13.4/i18n/tr.json',
+        },
+        columns: [
+        { data: 'id'},
+        { data: 'title',"width": "70%" },
+        { data: 'hit' },
+        { data: 'action' },
 
-       language: {
-       url: '//cdn.datatables.net/plug-ins/1.13.4/i18n/tr.json',
-       },
-       "lengthChange": false,
-       "searching": true,
-       "ordering": true,
-       "info": true,
-       "autoWidth": false,
-       "responsive": true,
-       });
-   </x-slot>
+        ],
+        "order": [[ 0, "desc" ]],
+        "lengthChange": true,
+        "searching": true,
+        "ordering": true,
+        "info": true,
+        "autoWidth": false,
+        "responsive": true,
+        });
+        $('#delete-items').on('click', function(e){
+        var r = confirm("Seçilenleri silmek istediğinize emin misiniz ?");
+        if (r == true) {
+        console.log("You pressed OK!");
+        var form = $('#selected-form');
+        $.each(rows_selected, function(index, rowId){
+        $(form).append($('<input>').attr('type', 'hidden').attr('name', 'id[]').val(rowId));
+        });
+        var formSelectData=$(form).serialize();
+        form.submit();
+        }
+        });
+    </x-slot>
 
 </x-app-layout>
+
 

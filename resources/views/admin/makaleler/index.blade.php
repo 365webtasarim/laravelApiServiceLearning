@@ -31,42 +31,18 @@
                     <table id="example2" class="table table-bordered table-hover">
                         <thead>
                         <tr>
-                            <th>TARİH</th>
+                            <th>#ID</th>
                             <th>BAŞLIK</th>
                             <th>HİT</th>
                             <th>İŞLEMLER</th>
                         </tr>
                         </thead>
                         <tbody>
-                        @foreach($makaleler as $makale)
-                            <tr>
-                                <th width="10%">{{$makale->created_at->format('Y/m/d')}}</th>
-                                <th width="70%">{{$makale->title}}</th>
-                                <th width="5%">{{$makale->hit}}</th>
-                                <td width="15%">
-                                    <a class="btn btn-info btn-xs tooltips" data-container="body" data-placement="top" data-original-title="Düzenle" href="{{route('sohbetoku',$makale->slug)}}">
-                                        <i class="fas fa-share"></i>
-                                    </a>
-                                    <a class="btn btn-success btn-xs tooltips" data-container="body" data-placement="top" data-original-title="Düzenle" href="{{route('editSohbet',$makale->id)}}">
-                                        <i class="fas fa-edit"></i>
-                                    </a>
 
-                                    <a class="btn btn-danger btn-xs tooltips" data-container="body" data-placement="top" data-original-title="Düzenle" onclick="$(this).find('form').submit();">
-                                        <i class="fas fa-trash-alt"></i>
-                                        <form method="post" action="{{route('SohbetDelete',$makale->id)}}">
-                                            @method('delete')
-                                            @csrf
-                                        </form>
-                                    </a>
-
-
-                                </td>
-                            </tr>
-                        @endforeach
                         </tbody>
                         <tfoot>
                         <tr>
-                            <th>TARİH</th>
+                            <th>#ID</th>
                             <th>BAŞLIK</th>
                             <th>HİT</th>
                             <th>İŞLEMLER</th>
@@ -81,15 +57,44 @@
     <x-slot name="js">
         $('#example2').DataTable({
         "paging": true,
+        drawCallback: function() {
+         $('.form-control').addClass('bg-dark');
+        },
+        ajax: {
+        url: "{{route('getPost','post')}}",
+        headers: {'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')},
+        method: "POST",
+        dataSrc: "data"
+        },
         language: {
         url: '//cdn.datatables.net/plug-ins/1.13.4/i18n/tr.json',
         },
-        "lengthChange": false,
+        columns: [
+        { data: 'id'},
+        { data: 'title',"width": "70%" },
+        { data: 'hit' },
+        { data: 'action' },
+
+        ],
+        "order": [[ 0, "desc" ]],
+        "lengthChange": true,
         "searching": true,
         "ordering": true,
         "info": true,
-        "autoWidth": false,
+        "autoWidth": true,
         "responsive": true,
+        });
+        $('#delete-items').on('click', function(e){
+        var r = confirm("Seçilenleri silmek istediğinize emin misiniz ?");
+        if (r == true) {
+        console.log("You pressed OK!");
+        var form = $('#selected-form');
+        $.each(rows_selected, function(index, rowId){
+        $(form).append($('<input>').attr('type', 'hidden').attr('name', 'id[]').val(rowId));
+        });
+        var formSelectData=$(form).serialize();
+        form.submit();
+        }
         });
     </x-slot>
 

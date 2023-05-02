@@ -2,11 +2,13 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Resources\SliderResource;
 use App\Models\Article;
 use App\Models\Koseyazilari;
 use App\Models\Post;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
+use function MongoDB\BSON\toJSON;
 
 class YazilarController extends Controller
 {
@@ -27,5 +29,12 @@ class YazilarController extends Controller
         else{
             return redirect()->route('home');
         }
+    }
+
+
+    public function getPost($type){
+
+        $posts = Post::where('type', $type)->orderBy('created_at', 'desc')->get();
+        return SliderResource::collection($posts);
     }
 }

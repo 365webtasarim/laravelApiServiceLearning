@@ -71,12 +71,18 @@
                         <tags taglar="{{$tags}}">
 
                         </tags>
-                        <uploadphoto
-                            @if(isset($makale) && $makale->cover != "")
-                                old="{{$makale->cover}}"
-                            @endif
-                        ></uploadphoto>
-
+                        <div class="col-md-12">
+                            <div class="form-group">
+                                <div id="dropzone" method="post" class="dropzone">
+                                    <div class="dz-message">
+                                        <h3 class="m-h-lg">Yüklemek istediğiniz dosyaları buraya sürükleyiniz</h3>
+                                        <p class="m-b-lg text-muted">(Yüklemek için dosyalarınızı sürükleyiniz yada
+                                            buraya tıklayınız)</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <input type="hidden" name="hit" value="{{$makale->hit}}">
                         <input type="submit"
                                class="text-white bg-blue-700 hover:bg-blue-800 focus:outline-none focus:ring-4 focus:ring-blue-300 font-medium rounded-full text-sm px-5 py-2.5 text-center mr-2 mb-2 dark:bg-blue-600 dark:hover:bg-blue-700 dark:focus:ring-blue-800 w-100"
                                value="Kaydet">
@@ -90,7 +96,58 @@
         </div>
     </div>
     <x-slot name="js">
+        var uploadedDocumentMap = {}
+        Dropzone.options.dropzone = {
+        url: '{{ route('media.storeMedia') }}',
+        maxFilesize: 20, // MB
+        uploadMultiple: false,
+        maxFiles: 1, // Count
+        maxfilesexceeded: function(file) {
+        this.removeAllFiles();
+        this.addFile(file);
+        },
+        addRemoveLinks: true,
+        headers: {
+        'X-CSRF-TOKEN': "{{ csrf_token() }}"
+        },
+        success: function (file, response) {
+        $('form').find('input[name="file_old"]').remove()
+        $('form').append('<input type="hidden" name="media" value="' + response.name + '">')
+        uploadedDocumentMap[file.name] = response.name
 
+        },
+        removedfile: function (file) {
+        file.previewElement.remove()
+        var name = ''
+        if (typeof file.file_name !== 'undefined') {
+        name = file.file_name
+        } else {
+        name = uploadedDocumentMap[file.name]
+        }
+        $('form').find('input[name="file"][value="' + name + '"]').remove()
+        },
+        init: function() {
+        myDropzone = this;
+        $.ajax({
+        url: '/api/getinfoPost',
+        type: 'post',
+        data: {cover: {!! $makale->id !!}},
+        dataType: 'json',
+        success: function(response){
+
+        $.each(response, function(key,value) {
+        var mockFile = { name: value.name, size: value.size };
+
+        myDropzone.emit("addedfile", mockFile);
+        myDropzone.emit("thumbnail", mockFile, value.path);
+        myDropzone.emit("complete", mockFile);
+        $('form').append('<input type="hidden" name="media" value="' + value.name + '">')
+        });
+
+        }
+        });
+        }
+        }
         $(document).ready(function () {
         CKEDITOR.replace('editor');
 

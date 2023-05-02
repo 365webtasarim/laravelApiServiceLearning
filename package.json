@@ -37,6 +37,7 @@
         "fontawesome-free": "^1.0.4",
         "html-table-of-contents": "^0.1.1",
         "jquery-nestable": "^0.8.0",
+        "jquery-ui": "^1.13.2",
         "nestable2": "^1.6.0",
         "owl.carousel": "^2.3.4",
         "slugify": "^1.6.5",

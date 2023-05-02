@@ -45,13 +45,22 @@ class SlidersController extends Controller
      */
     public function store(SliderRequest $request)
     {
-        //
         $validated = $request->validate([
             'title' => 'required|string|max:255|min:5'
         ]);
-        dd($validated);
-        $link=env('APP_URL').env('STROGE_PATH').$request->file;
-        dd($link);
+
+        $link=env('STROGE_PATH').$request->file;
+
+        $sliders =new Slider();
+        $sliders->title=$request->title;
+        $sliders->link_url=$request->url;
+        $sliders->status= $request->status;
+        $sliders->device= $request->device;
+        $sliders->image_path=$link;
+        $sliders->order=0;
+
+        $sliders->save();
+        return redirect()->route('sliders');
     }
 
     /**
@@ -87,6 +96,27 @@ class SlidersController extends Controller
      */
     public function editSlider(Request $request, $id)
     {
+
+        $validated = $request->validate([
+            'title' => 'required|string|max:255|min:5'
+        ]);
+        $sliders = Slider::find($id);
+        if($request->file_old!=null){
+            $link=$request->file_old;
+        }else{
+            $link=env('STROGE_PATH').$request->file;
+        }
+
+
+        $sliders->title=$request->title;
+        $sliders->link_url=$request->url;
+        $sliders->status= $request->status;
+        $sliders->device= $request->device;
+        $sliders->image_path=$link;
+        $sliders->order=0;
+
+        $sliders->save();
+        return redirect()->back();
         //
     }
 
